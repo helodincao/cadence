@@ -1,0 +1,219 @@
+.wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(53, 225, 255, 0.04);
+}
+/* HUD corner brackets, top-right + bottom-left */
+.wrap::before,
+.wrap::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--cyan);
+  box-shadow: var(--glow-cyan);
+  z-index: 6;
+  pointer-events: none;
+}
+.wrap::before {
+  top: -1px;
+  right: -1px;
+  border-left: none;
+  border-bottom: none;
+}
+.wrap::after {
+  bottom: -1px;
+  left: -1px;
+  border-right: none;
+  border-top: none;
+}
+
+/* --- Day headers (sticky top) --- */
+.header {
+  display: grid;
+  grid-template-columns: var(--gutter-width) repeat(7, 1fr);
+  border-bottom: 1px solid var(--line);
+  background: rgba(6, 14, 24, 0.6);
+}
+.corner {
+  border-right: 1px solid var(--line-soft);
+}
+.dayHead {
+  text-align: center;
+  padding: 9px 4px;
+  border-right: 1px solid var(--line-soft);
+}
+.dayHead.weekend {
+  background: rgba(53, 225, 255, 0.03);
+}
+.dow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.dnum {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 3px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dnum.today {
+  color: var(--bg);
+  background: var(--cyan);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: var(--glow-cyan);
+}
+
+/* --- Scroll area + body grid --- */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+.body {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--gutter-width) repeat(7, 1fr);
+}
+
+.gutter {
+  border-right: 1px solid var(--line-soft);
+}
+.hourLabel {
+  position: relative;
+}
+/* tick mark at each hour line */
+.hourLabel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 1px;
+  background: var(--line);
+}
+.hourLabel span {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+  padding: 0 2px;
+}
+
+.dayCol {
+  position: relative;
+  cursor: pointer;
+  border-right: 1px solid var(--line-soft);
+  /* hour gridlines, one per --hour-height */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--line-soft) 0,
+    var(--line-soft) 1px,
+    transparent 1px,
+    transparent var(--hour-height)
+  );
+}
+.weekendCol {
+  background-color: rgba(53, 225, 255, 0.025);
+}
+
+/* --- Drag: landing outline where a floating block will drop --- */
+.placeholder {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border: 1.5px dashed var(--cyan);
+  border-radius: 3px;
+  background: rgba(53, 225, 255, 0.07);
+  box-shadow: inset 0 0 16px rgba(53, 225, 255, 0.14);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* --- Drag: the picked-up block that floats with the cursor --- */
+.floating {
+  position: fixed;
+  z-index: 200;
+  border-radius: 3px;
+  padding: 5px 8px;
+  pointer-events: none;
+  cursor: grabbing;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  border-left: 3px solid var(--ev-color);
+  background: color-mix(in srgb, var(--ev-color) 22%, var(--surface-solid));
+  transform: scale(1.03) rotate(-0.6deg);
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    var(--glow-cyan),
+    0 18px 40px rgba(0, 0, 0, 0.55);
+}
+.floatTitle {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.floatSub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--cyan-bright);
+  text-shadow: var(--text-glow);
+}
+
+/* --- Now line: reticle --- */
+.nowLine {
+  position: absolute;
+  left: var(--gutter-width);
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--urgent);
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(255, 93, 93, 0.7);
+}
+.nowLine::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -4px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--urgent);
+  filter: drop-shadow(0 0 4px rgba(255, 93, 93, 0.8));
+}
+.nowTime {
+  position: absolute;
+  left: 8px;
+  top: -7px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--bg);
+  background: var(--urgent);
+  padding: 1px 5px;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(255, 93, 93, 0.6);
+}

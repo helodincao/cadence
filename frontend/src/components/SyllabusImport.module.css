@@ -1,0 +1,130 @@
+.textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  background: rgba(0, 2, 6, 0.5);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 10px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-soft);
+}
+
+.error {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--urgent);
+  border: 1px solid var(--urgent);
+  border-radius: 3px;
+  padding: 8px 10px;
+  background: rgba(255, 93, 93, 0.08);
+}
+
+.sourceNote {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.sourceNote code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+}
+.badge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--bg);
+  background: var(--cyan);
+  margin-right: 6px;
+}
+.badgeWarn {
+  background: var(--gold);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+.empty {
+  font-size: 13px;
+  color: var(--ink-3);
+  padding: 8px 2px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: rgba(0, 2, 6, 0.4);
+  cursor: pointer;
+}
+.row:hover {
+  border-color: var(--line);
+}
+.row input {
+  margin-top: 2px;
+  accent-color: var(--cyan);
+  width: 15px;
+  height: 15px;
+}
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+.rowTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.chip {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  border-radius: 3px;
+  padding: 2px 6px;
+  color: var(--ink-2);
+  border: 1px solid var(--line-soft);
+  background: rgba(53, 225, 255, 0.03);
+}
+.pri_high {
+  color: var(--bg);
+  background: var(--urgent);
+  border-color: var(--urgent);
+  font-weight: 700;
+}
+.pri_med {
+  color: var(--bg);
+  background: var(--gold);
+  border-color: var(--gold);
+  font-weight: 700;
+}
+.pri_low {
+  color: var(--ink-3);
+}

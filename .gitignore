@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Python / backend
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Database (local state)
+*.db
+
+# Editors
+.vscode/
+.idea/

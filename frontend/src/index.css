@@ -1,0 +1,140 @@
+/* ============================================================
+   Cadence — "Stark HUD" theme.
+   A single dark, cyan-glow aesthetic inspired by the Jarvis
+   heads-up display: hairline glowing grid, neon readouts,
+   Orbitron / Rajdhani / Share Tech Mono type.
+   Committed dark theme — no light variant by design.
+   ============================================================ */
+:root {
+  /* Grounds */
+  --bg: #000103;
+  --bg-2: #060c15;
+  --surface: rgba(9, 20, 33, 0.66); /* glassy HUD panel */
+  --surface-solid: #06101b;
+  --surface-2: rgba(53, 200, 255, 0.05);
+
+  /* Lines */
+  --line: rgba(70, 205, 255, 0.22);
+  --line-soft: rgba(70, 205, 255, 0.09);
+  --grid-line: rgba(70, 205, 255, 0.06);
+
+  /* Text (cyan-white readouts) */
+  --ink: #cdeeff;
+  --ink-2: #7aa8c2;
+  --ink-3: #547a92;
+
+  /* Signals */
+  --cyan: #35e1ff; /* arc-reactor primary */
+  --cyan-bright: #8af3ff;
+  --gold: #ffc061; /* Stark gold — state accents */
+  --urgent: #ff5d5d; /* alerts */
+
+  --accent: var(--cyan);
+  --accent-soft: rgba(53, 225, 255, 0.14);
+
+  /* Glows */
+  --glow-cyan: 0 0 10px rgba(53, 225, 255, 0.55);
+  --glow-cyan-soft: 0 0 18px rgba(53, 225, 255, 0.28);
+  --text-glow: 0 0 8px rgba(53, 225, 255, 0.45);
+
+  /* NOTE: per-calendar colors are DATA, not theme tokens — edit them in
+     src/data/sampleData.ts (each calendar's `color` field), not here. */
+
+  /* Type */
+  --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Share Tech Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Week-grid geometry */
+  --hour-height: 52px;
+  --gutter-width: 62px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+
+  /* Layered HUD ground: faint blueprint grid + radial arc-reactor glow
+     bleeding up from bottom-left, over a deep blue-black. */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(
+      120% 90% at 15% 108%,
+      rgba(53, 225, 255, 0.08),
+      transparent 55%
+    ),
+    radial-gradient(
+      90% 80% at 100% -10%,
+      rgba(80, 140, 255, 0.05),
+      transparent 50%
+    ),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    34px 34px,
+    34px 34px;
+  background-attachment: fixed;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Uppercase tracked HUD label — reused across components. */
+.hud-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+:focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 2px;
+  box-shadow: var(--glow-cyan);
+  border-radius: 2px;
+}
+
+/* HUD scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 225, 255, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(53, 225, 255, 0.28);
+  border-radius: 2px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(53, 225, 255, 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}

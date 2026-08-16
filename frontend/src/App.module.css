@@ -1,0 +1,51 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* transparent so the body's HUD grid + arc glow show through */
+  background: transparent;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr) 268px;
+  flex: 1;
+  min-height: 0; /* let the panes scroll instead of the page */
+  gap: 10px;
+  padding: 10px;
+}
+
+/* Drop the task rail first, then the sidebar, as width shrinks. */
+@media (max-width: 1024px) {
+  .body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+@media (max-width: 720px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Transient confirmation (e.g. after Plan Week). */
+.toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  background: var(--surface-solid);
+  border: 1px solid var(--cyan);
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--ink);
+  box-shadow: var(--glow-cyan), 0 12px 30px rgba(0, 0, 0, 0.5);
+  animation: toastIn 0.16s ease-out;
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}

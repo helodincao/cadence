@@ -1,0 +1,528 @@
+<title>AI Calendar — Wireframe & Layout</title>
+<style>
+  :root {
+    --bg: #EEF0F6;
+    --surface: #FFFFFF;
+    --surface-2: #F6F7FB;
+    --line: #DDE0EC;
+    --line-soft: #E9EBF3;
+    --ink: #1A1C28;
+    --ink-2: #565A6E;
+    --ink-3: #8A8FA3;
+    --accent: #5B54E0;
+    --accent-soft: #ECEBFC;
+    --urgent: #E5484D;
+
+    --cal-school: #3B82F6;
+    --cal-lab: #10B0A2;
+    --cal-club: #8B5CF6;
+    --cal-health: #22B36B;
+    --cal-jobs: #F59E0B;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(20,22,40,.04), 0 8px 30px rgba(20,22,40,.08);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E0F16;
+      --surface: #171923;
+      --surface-2: #1E212E;
+      --line: #2A2E3E;
+      --line-soft: #23273400;
+      --line-soft: #232734;
+      --ink: #EDEEF4;
+      --ink-2: #A7ACC0;
+      --ink-3: #6B7085;
+      --accent: #8B85FF;
+      --accent-soft: #241F4A;
+      --urgent: #FF6369;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 34px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E0F16; --surface: #171923; --surface-2: #1E212E; --line: #2A2E3E;
+    --line-soft: #232734; --ink: #EDEEF4; --ink-2: #A7ACC0; --ink-3: #6B7085;
+    --accent: #8B85FF; --accent-soft: #241F4A; --urgent: #FF6369;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 34px rgba(0,0,0,.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ---- page header ---- */
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 10px;
+  }
+  h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0 0 12px;
+       letter-spacing: -.02em; text-wrap: balance; font-weight: 700; }
+  .lede { font-size: 17px; color: var(--ink-2); max-width: 60ch; margin: 0; }
+
+  section { margin-top: 52px; }
+  h2 { font-size: 13px; font-family: var(--mono); text-transform: uppercase;
+       letter-spacing: .1em; color: var(--ink-3); font-weight: 600;
+       margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+  h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  /* ---- app mockup frame ---- */
+  .frame-scroll { overflow-x: auto; border-radius: var(--radius);
+                  box-shadow: var(--shadow); }
+  .app { min-width: 900px; background: var(--surface);
+         border: 1px solid var(--line); border-radius: var(--radius);
+         overflow: hidden; }
+
+  /* top bar */
+  .topbar { display: flex; align-items: center; gap: 16px;
+            padding: 12px 16px; border-bottom: 1px solid var(--line);
+            background: var(--surface); }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700;
+           letter-spacing: -.01em; }
+  .brand .dot { width: 22px; height: 22px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), var(--cal-club));
+    display: grid; place-items: center; color: #fff; font-size: 13px; }
+  .navbtns { display: flex; align-items: center; gap: 6px; }
+  .today { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line);
+           border-radius: 7px; padding: 5px 10px; color: var(--ink-2);
+           background: var(--surface); }
+  .chev { width: 26px; height: 26px; display: grid; place-items: center;
+          color: var(--ink-3); border-radius: 6px; }
+  .month-label { font-weight: 600; font-size: 15px; }
+  .spacer { flex: 1; }
+  .segment { display: flex; border: 1px solid var(--line); border-radius: 8px;
+             overflow: hidden; font-size: 12px; font-family: var(--mono); }
+  .segment span { padding: 6px 12px; color: var(--ink-2); }
+  .segment span.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .plan-btn { display: flex; align-items: center; gap: 7px; background: var(--accent);
+              color: #fff; border-radius: 8px; padding: 7px 14px; font-size: 13px;
+              font-weight: 600; white-space: nowrap; }
+  .plan-btn .spark { font-size: 13px; }
+
+  /* body layout */
+  .layout { display: grid; grid-template-columns: 208px 1fr 236px; }
+  .sidebar { border-right: 1px solid var(--line); padding: 14px; background: var(--surface); }
+  .rail { border-left: 1px solid var(--line); padding: 14px; background: var(--surface-2); }
+
+  /* mini month */
+  .mini { margin-bottom: 18px; }
+  .mini-head { font-size: 12px; font-weight: 600; color: var(--ink-2);
+               margin-bottom: 8px; font-family: var(--mono); }
+  .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .mini-grid span { font-size: 10px; text-align: center; padding: 3px 0;
+                    color: var(--ink-3); border-radius: 5px; }
+  .mini-grid span.wk { color: var(--ink-3); opacity: .6; }
+  .mini-grid span.today-cell { background: var(--accent); color: #fff; font-weight: 700; }
+
+  .side-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+                text-transform: uppercase; color: var(--ink-3); margin: 4px 0 8px; }
+  .callist { display: flex; flex-direction: column; gap: 3px; }
+  .cal { display: flex; align-items: center; gap: 9px; padding: 5px 6px;
+         border-radius: 7px; font-size: 13px; color: var(--ink); }
+  .cal:hover { background: var(--surface-2); }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none;
+            display: grid; place-items: center; }
+  .swatch.off { background: transparent !important;
+                border: 1.5px solid var(--line); }
+  .swatch svg { width: 9px; height: 9px; }
+  .cal.dim { color: var(--ink-3); }
+
+  .side-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .side-action { display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+                 color: var(--ink-2); border: 1px dashed var(--line); border-radius: 8px;
+                 padding: 8px 10px; }
+  .side-action b { color: var(--ink); font-weight: 600; }
+
+  /* week grid */
+  .cal-main { overflow: hidden; }
+  .weekhead { display: grid; grid-template-columns: 48px repeat(7, 1fr);
+              border-bottom: 1px solid var(--line); }
+  .weekhead .gutter { border-right: 1px solid var(--line-soft); }
+  .dcol { text-align: center; padding: 8px 4px; border-right: 1px solid var(--line-soft); }
+  .dcol .dow { font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+               text-transform: uppercase; color: var(--ink-3); }
+  .dcol .dnum { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .dcol.is-today .dnum { color: #fff; background: var(--accent); width: 26px; height: 26px;
+     border-radius: 50%; display: inline-grid; place-items: center; }
+
+  .grid { position: relative; display: grid;
+          grid-template-columns: 48px repeat(7, 1fr);
+          grid-template-rows: repeat(13, 46px); }
+  .hourlabel { grid-column: 1; font-family: var(--mono); font-size: 10px;
+               color: var(--ink-3); text-align: right; padding: 2px 6px 0 0;
+               border-right: 1px solid var(--line-soft); border-top: 1px solid var(--line-soft); }
+  .hourlabel.first { border-top: none; }
+  .cellcol { border-right: 1px solid var(--line-soft); }
+  /* background cells for each day column, drawn as full-height columns */
+  .daybg { border-right: 1px solid var(--line-soft); }
+  .daybg.wknd { background: var(--surface-2); }
+
+  .ev { border-radius: 7px; padding: 5px 7px; font-size: 11px; margin: 1px 3px;
+        overflow: hidden; z-index: 2; box-shadow: 0 1px 2px rgba(20,22,40,.05);
+        display: flex; flex-direction: column; gap: 2px; }
+  .ev .t { font-weight: 600; line-height: 1.2; }
+  .ev .sub { font-size: 9.5px; opacity: .8; font-family: var(--mono); }
+  /* fixed events = solid tinted */
+  .ev.fixed { color: #fff; }
+  /* work blocks = AI-suggested, dashed, tinted-light */
+  .ev.block { border: 1.5px dashed; background: var(--surface);
+              position: relative; }
+  .ev.block::before { content: "✦ AI"; position: absolute; top: 4px; right: 6px;
+              font-family: var(--mono); font-size: 8px; letter-spacing: .05em; opacity: .7; }
+  .ev.block .t { font-weight: 600; }
+  .ev.locked { border-style: solid; }
+  .ev.locked::before { content: "🔒"; }
+
+  /* now line */
+  .nowline { position: absolute; height: 2px; background: var(--urgent); z-index: 5;
+             left: 48px; right: 0; }
+  .nowline::before { content: ""; position: absolute; left: -4px; top: -3px;
+             width: 8px; height: 8px; border-radius: 50%; background: var(--urgent); }
+
+  /* right rail */
+  .rail-h { font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+            text-transform: uppercase; color: var(--ink-3); margin: 2px 0 10px;
+            display: flex; justify-content: space-between; }
+  .rail-h .count { background: var(--accent-soft); color: var(--accent);
+                   border-radius: 20px; padding: 1px 8px; }
+  .task { background: var(--surface); border: 1px solid var(--line); border-radius: 9px;
+          padding: 9px 10px; margin-bottom: 7px; }
+  .task .tt { font-size: 13px; font-weight: 600; margin-bottom: 5px; line-height: 1.25; }
+  .task .meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .chip { font-family: var(--mono); font-size: 9.5px; letter-spacing: .03em;
+          border-radius: 5px; padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; }
+  .chip.eff { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+  .chip.due { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+  .chip.due.hot { color: var(--urgent); border-color: var(--urgent); }
+  .chip.pri-h { background: var(--urgent); color: #fff; }
+  .chip.pri-m { background: var(--cal-jobs); color: #fff; }
+  .chip.pri-l { background: var(--line); color: var(--ink-2); }
+  .task .catdot { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+
+  .plan-card { margin-top: 14px; background: var(--accent-soft); border: 1px solid var(--accent);
+               border-radius: 10px; padding: 11px; }
+  .plan-card .pc-h { font-weight: 700; font-size: 12.5px; display: flex; gap: 6px;
+                     align-items: center; margin-bottom: 6px; }
+  .plan-card p { margin: 0 0 9px; font-size: 11.5px; color: var(--ink-2); }
+  .plan-card .pc-actions { display: flex; gap: 6px; }
+  .pc-actions .a { flex: 1; text-align: center; font-size: 11px; font-weight: 600;
+                   padding: 6px; border-radius: 7px; }
+  .a.accept { background: var(--accent); color: #fff; }
+  .a.preview { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+
+  /* annotations under mockup */
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+            gap: 12px; margin-top: 14px; }
+  .lg { background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+        padding: 13px 15px; }
+  .lg .sample { display: inline-block; font-size: 11px; padding: 4px 8px; border-radius: 6px;
+                margin-bottom: 8px; font-weight: 600; }
+  .lg .sample.fx { background: var(--cal-school); color: #fff; }
+  .lg .sample.bl { border: 1.5px dashed var(--cal-school); color: var(--cal-school); }
+  .lg .sample.lk { border: 1.5px solid var(--cal-school); color: var(--cal-school); }
+  .lg h4 { margin: 0 0 4px; font-size: 13px; }
+  .lg p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+
+  /* feature grid */
+  .feat { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+          padding: 18px; }
+  .card .tag { font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+               text-transform: uppercase; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+  .tag.mvp { background: var(--accent-soft); color: var(--accent); }
+  .tag.v2 { background: color-mix(in srgb, var(--cal-lab) 16%, transparent); color: var(--cal-lab); }
+  .tag.v3 { background: color-mix(in srgb, var(--cal-jobs) 18%, transparent); color: var(--cal-jobs); }
+  .card h3 { margin: 12px 0 8px; font-size: 16px; letter-spacing: -.01em; }
+  .card ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 13.5px; }
+  .card li { margin-bottom: 5px; }
+  .card li b { color: var(--ink); font-weight: 600; }
+
+  /* roadmap */
+  .road { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+          gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+          background: var(--surface); }
+  .step { padding: 16px; border-right: 1px solid var(--line); }
+  .step:last-child { border-right: none; }
+  .step .n { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 700; }
+  .step h4 { margin: 8px 0 5px; font-size: 14px; }
+  .step p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+
+  .note { margin-top: 40px; font-size: 13px; color: var(--ink-3);
+          border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 620px) { .wrap { padding: 28px 14px 60px; } }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Product plan · working name “Cadence”</p>
+  <h1>An AI scheduler that decides <em>when</em> the work actually happens</h1>
+  <p class="lede">Import your syllabi, shifts, and deadlines. Answer a short questionnaire.
+    The AI lays homework and prep onto a Google-Calendar-style grid you can see, toggle by
+    calendar, and drag around — and it re-plans around every edit you make.</p>
+
+  <!-- ============ MOCKUP ============ -->
+  <section>
+    <h2>Main screen — mid-fidelity wireframe</h2>
+    <div class="frame-scroll">
+      <div class="app">
+
+        <!-- top bar -->
+        <div class="topbar">
+          <div class="brand"><span class="dot">✦</span> Cadence</div>
+          <div class="navbtns">
+            <span class="today">Today</span>
+            <span class="chev">‹</span><span class="chev">›</span>
+          </div>
+          <span class="month-label">Aug 17 – 23</span>
+          <span class="spacer"></span>
+          <div class="segment"><span>Day</span><span class="on">Week</span><span>Month</span></div>
+          <span class="plan-btn"><span class="spark">✦</span> Plan my week</span>
+        </div>
+
+        <!-- 3-col layout -->
+        <div class="layout">
+
+          <!-- sidebar -->
+          <aside class="sidebar">
+            <div class="mini">
+              <div class="mini-head">August 2026</div>
+              <div class="mini-grid">
+                <span class="wk">M</span><span class="wk">T</span><span class="wk">W</span>
+                <span class="wk">T</span><span class="wk">F</span><span class="wk">S</span><span class="wk">S</span>
+                <span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                <span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+                <span class="today-cell">18</span><span>19</span><span>20</span><span>21</span><span>22</span><span>23</span><span>24</span>
+                <span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span>
+              </div>
+            </div>
+
+            <div class="side-label">My calendars</div>
+            <div class="callist">
+              <div class="cal"><span class="swatch" style="background:var(--cal-school)"><svg viewBox="0 0 10 10"><path d="M1 5l2.5 2.5L9 1.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span> School</div>
+              <div class="cal"><span class="swatch" style="background:var(--cal-lab)"><svg viewBox="0 0 10 10"><path d="M1 5l2.5 2.5L9 1.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Lab</div>
+              <div class="cal"><span class="swatch" style="background:var(--cal-club)"><svg viewBox="0 0 10 10"><path d="M1 5l2.5 2.5L9 1.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Club (SW lead)</div>
+              <div class="cal"><span class="swatch" style="background:var(--cal-health)"><svg viewBox="0 0 10 10"><path d="M1 5l2.5 2.5L9 1.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Health</div>
+              <div class="cal dim"><span class="swatch off"></span> Job Hunt</div>
+            </div>
+
+            <div class="side-actions">
+              <div class="side-action">＋ <b>Import syllabus</b></div>
+              <div class="side-action">☑ <b>Edit questionnaire</b></div>
+              <div class="side-action">＋ New task / event</div>
+            </div>
+          </aside>
+
+          <!-- calendar -->
+          <main class="cal-main">
+            <div class="weekhead">
+              <div class="gutter"></div>
+              <div class="dcol"><div class="dow">Mon</div><div class="dnum">17</div></div>
+              <div class="dcol is-today"><div class="dow">Tue</div><div class="dnum">18</div></div>
+              <div class="dcol"><div class="dow">Wed</div><div class="dnum">19</div></div>
+              <div class="dcol"><div class="dow">Thu</div><div class="dnum">20</div></div>
+              <div class="dcol"><div class="dow">Fri</div><div class="dnum">21</div></div>
+              <div class="dcol"><div class="dow">Sat</div><div class="dnum">22</div></div>
+              <div class="dcol"><div class="dow">Sun</div><div class="dnum">23</div></div>
+            </div>
+
+            <div class="grid">
+              <!-- hour labels col 1 -->
+              <div class="hourlabel first" style="grid-row:1">8 AM</div>
+              <div class="hourlabel" style="grid-row:2">9</div>
+              <div class="hourlabel" style="grid-row:3">10</div>
+              <div class="hourlabel" style="grid-row:4">11</div>
+              <div class="hourlabel" style="grid-row:5">12 PM</div>
+              <div class="hourlabel" style="grid-row:6">1</div>
+              <div class="hourlabel" style="grid-row:7">2</div>
+              <div class="hourlabel" style="grid-row:8">3</div>
+              <div class="hourlabel" style="grid-row:9">4</div>
+              <div class="hourlabel" style="grid-row:10">5</div>
+              <div class="hourlabel" style="grid-row:11">6</div>
+              <div class="hourlabel" style="grid-row:12">7</div>
+              <div class="hourlabel" style="grid-row:13">8 PM</div>
+
+              <!-- day background columns -->
+              <div class="daybg" style="grid-column:2; grid-row:1/14"></div>
+              <div class="daybg" style="grid-column:3; grid-row:1/14"></div>
+              <div class="daybg" style="grid-column:4; grid-row:1/14"></div>
+              <div class="daybg" style="grid-column:5; grid-row:1/14"></div>
+              <div class="daybg" style="grid-column:6; grid-row:1/14"></div>
+              <div class="daybg wknd" style="grid-column:7; grid-row:1/14"></div>
+              <div class="daybg wknd" style="grid-column:8; grid-row:1/14"></div>
+
+              <!-- MON (col2) -->
+              <div class="ev fixed" style="grid-column:2; grid-row:2/3; background:var(--cal-school)">
+                <span class="t">CSCI 3155 Lecture</span><span class="sub">9–10 AM</span></div>
+              <div class="ev block" style="grid-column:2; grid-row:7/9; border-color:var(--cal-school); color:var(--cal-school)">
+                <span class="t">PS4 — problems 1–3</span><span class="sub">2–4 PM · 2h</span></div>
+
+              <!-- TUE (col3, today) -->
+              <div class="ev fixed" style="grid-column:3; grid-row:3/6; background:var(--cal-lab)">
+                <span class="t">Lab — data runs</span><span class="sub">10–1 PM</span></div>
+              <div class="ev block" style="grid-column:3; grid-row:9/10; border-color:var(--cal-jobs); color:var(--cal-jobs)">
+                <span class="t">Apply · 2 roles</span><span class="sub">4–5 PM</span></div>
+
+              <!-- WED (col4) -->
+              <div class="ev fixed" style="grid-column:4; grid-row:2/3; background:var(--cal-school)">
+                <span class="t">CSCI 3155 Lecture</span><span class="sub">9–10 AM</span></div>
+              <div class="ev block" style="grid-column:4; grid-row:6/8; border-color:var(--cal-school); color:var(--cal-school)">
+                <span class="t">Reading + notes</span><span class="sub">1–3 PM · 2h</span></div>
+              <div class="ev fixed" style="grid-column:4; grid-row:10/11; background:var(--cal-health)">
+                <span class="t">Gym</span><span class="sub">5–6 PM</span></div>
+
+              <!-- THU (col5) -->
+              <div class="ev fixed" style="grid-column:5; grid-row:5/6; background:var(--cal-club)">
+                <span class="t">Club standup</span><span class="sub">12–1 PM</span></div>
+              <div class="ev block locked" style="grid-column:5; grid-row:8/10; border-color:var(--cal-school); color:var(--cal-school)">
+                <span class="t">PS4 — finish + submit</span><span class="sub">3–5 PM · due Fri!</span></div>
+
+              <!-- FRI (col6) -->
+              <div class="ev fixed" style="grid-column:6; grid-row:2/3; background:var(--cal-school)">
+                <span class="t">CSCI 3155 Lecture</span><span class="sub">9–10 AM</span></div>
+              <div class="ev fixed" style="grid-column:6; grid-row:6/9; background:var(--cal-lab)">
+                <span class="t">Lab meeting + work</span><span class="sub">1–4 PM</span></div>
+
+              <!-- SAT (col7) -->
+              <div class="ev block" style="grid-column:7; grid-row:4/6; border-color:var(--cal-club); color:var(--cal-club)">
+                <span class="t">Club: review PRs</span><span class="sub">11–1 PM · 2h</span></div>
+
+              <!-- now line ~ Tue 1:30pm -> row 6 area -->
+              <div class="nowline" style="top:246px;"></div>
+            </div>
+          </main>
+
+          <!-- right rail -->
+          <aside class="rail">
+            <div class="rail-h"><span>Task inbox</span><span class="count">5</span></div>
+
+            <div class="task">
+              <div class="tt"><span class="catdot" style="background:var(--cal-school)"></span> PS4 — Interpreters</div>
+              <div class="meta"><span class="chip pri-h">HIGH</span><span class="chip eff">◷ 6h</span><span class="chip due hot">due Fri</span></div>
+            </div>
+            <div class="task">
+              <div class="tt"><span class="catdot" style="background:var(--cal-jobs)"></span> Apply to 5 SWE roles</div>
+              <div class="meta"><span class="chip pri-m">MED</span><span class="chip eff">◷ 3h</span><span class="chip due">this wk</span></div>
+            </div>
+            <div class="task">
+              <div class="tt"><span class="catdot" style="background:var(--cal-club)"></span> Review club PRs</div>
+              <div class="meta"><span class="chip pri-m">MED</span><span class="chip eff">◷ 2h</span><span class="chip due">Sun</span></div>
+            </div>
+            <div class="task">
+              <div class="tt"><span class="catdot" style="background:var(--cal-school)"></span> Reading — Ch. 7</div>
+              <div class="meta"><span class="chip pri-l">LOW</span><span class="chip eff">◷ 2h</span><span class="chip due">Wed</span></div>
+            </div>
+
+            <div class="plan-card">
+              <div class="pc-h">✦ New plan ready</div>
+              <p>Placed <b>4 work blocks</b> around your lab + club. PS4 pulled earlier — it’s due Friday.</p>
+              <div class="pc-actions"><span class="a preview">Preview</span><span class="a accept">Accept</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <!-- legend -->
+    <div class="legend">
+      <div class="lg"><span class="sample fx">CSCI 3155 Lecture</span>
+        <h4>Fixed event</h4><p>Set time you don’t move — lectures, shifts, meetings. Comes from import or you add it. The AI schedules <em>around</em> these.</p></div>
+      <div class="lg"><span class="sample bl">PS4 — problems 1–3 ✦</span>
+        <h4>AI work block</h4><p>The AI’s suggestion for <em>when</em> to do a task. Dashed = proposed. Drag, resize, or delete freely.</p></div>
+      <div class="lg"><span class="sample lk">PS4 — finish 🔒</span>
+        <h4>Locked block</h4><p>A block you moved or pinned. Re-planning respects it and flows everything else around your choice.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section>
+    <h2>Features by release</h2>
+    <div class="feat">
+      <div class="card">
+        <span class="tag mvp">v1 · MVP</span>
+        <h3>The core loop</h3>
+        <ul>
+          <li><b>Multiple calendars</b> — create, color, toggle visibility (like Google Calendar)</li>
+          <li><b>Tasks</b> with due date, <b>effort estimate</b>, and <b>priority</b></li>
+          <li><b>Syllabus import</b> → AI extracts dates → you confirm before anything lands</li>
+          <li><b>Onboarding questionnaire</b> → your work hours & focus habits</li>
+          <li><b>Auto-schedule</b> tasks into free time as a preview you accept</li>
+          <li><b>Drag to tweak</b>; the rest re-flows around your edit</li>
+          <li>Week / Day / Month views</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag v2">v2 · smarter</span>
+        <h3>When it earns trust</h3>
+        <ul>
+          <li><b>Fell-behind rebalancing</b> — “missed 2 blocks, reschedule?”</li>
+          <li><b>Time-of-day energy</b> — deep work AM, admin PM</li>
+          <li>Recurring tasks & templates (weekly reading, gym 3×)</li>
+          <li>Reminders before blocks and deadlines</li>
+          <li>Task <b>dependencies</b> (B waits on A)</li>
+          <li>Two-way <b>iCal / Google</b> sync</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag v3">v3 · the website</span>
+        <h3>Opening it to users</h3>
+        <ul>
+          <li><b>Accounts & auth</b>, isolated per-user data</li>
+          <li><b>Shared calendars</b> for a club or lab team</li>
+          <li>Mobile-friendly, installable <b>PWA</b></li>
+          <li><b>Analytics</b> — estimated vs. actual, where the week went</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARCHITECTURE ============ -->
+  <section>
+    <h2>How it stays maintainable</h2>
+    <div class="feat">
+      <div class="card">
+        <h3>Clean seams</h3>
+        <ul>
+          <li><b>Frontend</b> (React + TS + Vite) only renders & edits</li>
+          <li><b>Backend</b> (FastAPI or Node) owns parsing & scheduling</li>
+          <li>Either side can change without breaking the other</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Scheduler is a pure function</h3>
+        <ul>
+          <li><code>(tasks, events, constraints) → plan</code></li>
+          <li>Deterministic, unit-testable, swappable</li>
+          <li>Start simple & greedy; refine later</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>AI stays contained</h3>
+        <ul>
+          <li>LLM does two jobs: <b>read syllabi</b>, <b>suggest</b> a plan</li>
+          <li>Always behind a <b>human-review</b> step</li>
+          <li>A bad AI output never silently corrupts your calendar</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUILD ORDER ============ -->
+  <section>
+    <h2>Suggested build order</h2>
+    <div class="road">
+      <div class="step"><div class="n">01</div><h4>Calendar shell</h4><p>Sidebar + week grid, hardcoded events. Learn the UI.</p></div>
+      <div class="step"><div class="n">02</div><h4>Calendars + tasks</h4><p>CRUD, colors, visibility toggles. No AI yet.</p></div>
+      <div class="step"><div class="n">03</div><h4>Deterministic scheduler</h4><p>Turn tasks into work blocks. Drag + re-flow.</p></div>
+      <div class="step"><div class="n">04</div><h4>Add the AI</h4><p>Questionnaire → syllabus import → suggestions.</p></div>
+      <div class="step"><div class="n">05</div><h4>Go multi-user</h4><p>Auth + Postgres → the public website.</p></div>
+    </div>
+  </section>
+
+  <p class="note">Full engineering plan — data model, scheduling loop, and open decisions —
+    lives in <code>ai_calendar/docs/PLAN.md</code>. “Cadence” is a placeholder name; swap it for whatever you like.</p>
+</div>

@@ -1,0 +1,176 @@
+/* Shared HUD form styling for the editor dialogs. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.input,
+.select {
+  width: 100%;
+  background: rgba(0, 2, 6, 0.5);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 9px 10px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-soft);
+}
+.select {
+  cursor: pointer;
+  appearance: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Native date input, themed as close to the HUD as the platform allows.
+   color-scheme:dark makes the browser's own date picker render dark. */
+.dateInput {
+  width: 100%;
+  background: rgba(0, 2, 6, 0.5);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 8px 10px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  color-scheme: dark;
+}
+.dateInput:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-soft);
+}
+.dateInput::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.6) sepia(1) saturate(4) hue-rotate(150deg);
+}
+
+/* Color preset swatches */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 1.5px solid transparent;
+}
+.swatch.selected {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px currentColor;
+}
+.colorInput {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+}
+
+/* Segmented toggle (e.g. Fixed / Work block) */
+.segment {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.segment button {
+  flex: 1;
+  padding: 9px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.segment button:hover {
+  background: var(--surface-2);
+}
+.segment .on {
+  background: var(--accent-soft);
+  color: var(--cyan-bright);
+  text-shadow: var(--text-glow);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cyan);
+}
+
+/* Footer actions */
+.actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 20px;
+}
+.spacer {
+  flex: 1;
+}
+.btn {
+  padding: 9px 16px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.btn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.btnPrimary {
+  background: var(--cyan);
+  color: var(--bg);
+  border-color: var(--cyan);
+  font-weight: 700;
+  box-shadow: var(--glow-cyan);
+}
+.btnPrimary:hover {
+  background: var(--cyan-bright);
+  color: var(--bg);
+}
+.btnDanger {
+  border-color: transparent;
+  color: var(--urgent);
+}
+.btnDanger:hover {
+  border-color: var(--urgent);
+  color: var(--urgent);
+}

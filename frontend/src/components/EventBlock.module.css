@@ -1,0 +1,130 @@
+.event {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 3px;
+  padding: 5px 8px;
+  overflow: hidden;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+  transition: box-shadow 0.12s ease;
+  /* bright glowing data-edge on the left, faint tinted body */
+  border-left: 3px solid var(--ev-color);
+  box-shadow:
+    -1px 0 8px -1px color-mix(in srgb, var(--ev-color) 60%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--ev-color) 10%, transparent);
+}
+.event:hover {
+  z-index: 4;
+  box-shadow:
+    -2px 0 12px 0 color-mix(in srgb, var(--ev-color) 80%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--ev-color) 16%, transparent);
+}
+
+/* While being dragged/resized: lift it, cyan halo, cursor = grabbing. */
+.dragging {
+  cursor: grabbing;
+  z-index: 8;
+  opacity: 0.94;
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    var(--glow-cyan),
+    -2px 0 14px 0 color-mix(in srgb, var(--ev-color) 85%, transparent);
+}
+
+/* Bottom resize handle: a thin strip, hinted on hover. */
+.resize {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.resize::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 18px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: var(--ev-color);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.event:hover .resize::after {
+  opacity: 0.7;
+}
+
+/* corner tick, top-right */
+.event::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid var(--ev-color);
+  border-right: 1px solid var(--ev-color);
+  opacity: 0.7;
+}
+
+.title {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.tag {
+  color: var(--ev-color);
+  letter-spacing: 0.1em;
+}
+
+/* Fixed event — solid readout: brighter tinted fill, full outline. */
+.fixed {
+  background: color-mix(in srgb, var(--ev-color) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ev-color) 55%, transparent);
+  border-left: 3px solid var(--ev-color);
+}
+.fixed .title {
+  color: var(--ink);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--ev-color) 45%, transparent);
+}
+
+/* AI work block — provisional: fainter fill, dashed outline, tinted title. */
+.block {
+  background: color-mix(in srgb, var(--ev-color) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--ev-color) 60%, transparent);
+  border-left: 3px solid var(--ev-color);
+}
+.block .title {
+  color: var(--ev-color);
+}
+
+/* Locked block — pinned by the user: solid outline + gold accent tag. */
+.locked {
+  border-style: solid;
+}
+.locked .tag {
+  color: var(--gold);
+}
