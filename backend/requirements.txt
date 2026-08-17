@@ -3,3 +3,5 @@ uvicorn[standard]>=0.30
 anthropic>=0.69
 pydantic>=2.7
 sqlalchemy>=2.0
+python-multipart>=0.0.9
+python-dotenv>=1.0

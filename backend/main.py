@@ -9,13 +9,20 @@ Run:  uvicorn main:app --reload --port 8000
 import os
 from typing import List, Literal, Optional
 
-from fastapi import FastAPI
+from dotenv import load_dotenv
+
+# Load backend/.env (ANTHROPIC_API_KEY, optional CADENCE_MODEL) before importing
+# extractor, which reads those at import time. .env is gitignored — keep secrets
+# there, never in code. This must run before `from extractor import ...`.
+load_dotenv()
+
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import db
 from db import Calendar as CalRow, Event as EvRow, SettingsRow, SessionLocal, Task as TaskRow
-from extractor import MODEL, extract_tasks
+from extractor import MODEL, import_plan
 
 app = FastAPI(title="Cadence API", version="0.2.0")
 db.init_db()
@@ -34,21 +41,29 @@ app.add_middleware(
 
 
 # --------------------------------------------------------------------------
-# Syllabus parsing
+# AI import — files + instruction → tasks + events
 # --------------------------------------------------------------------------
-class ParseRequest(BaseModel):
-    text: str
-
-
 @app.get("/api/health")
 def health():
     return {"status": "ok", "model": MODEL, "ai_enabled": bool(os.environ.get("ANTHROPIC_API_KEY"))}
 
 
-@app.post("/api/parse-syllabus")
-def parse_syllabus(req: ParseRequest):
-    tasks, source = extract_tasks(req.text)
-    return {"tasks": tasks, "source": source}
+@app.post("/api/import")
+async def import_details(
+    prompt: str = Form(""),
+    deadline: str = Form(""),
+    files: List[UploadFile] = File(default=[]),
+):
+    """Turn an instruction + uploaded files into tasks + events to schedule.
+
+    When ``deadline`` (ISO YYYY-MM-DD) is given, the plan is framed as work
+    sessions leading up to that date (the event editor's "plan work" flow).
+
+    Returns {note, tasks, events, source}.
+    """
+    uploaded = [((f.filename or "file"), await f.read(), (f.content_type or "")) for f in files]
+    result, source = import_plan(prompt, uploaded, deadline or None)
+    return {**result, "source": source}
 
 
 # --------------------------------------------------------------------------

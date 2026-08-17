@@ -8,7 +8,7 @@ import CalendarEditor from "./components/CalendarEditor";
 import EventEditor from "./components/EventEditor";
 import TaskEditor from "./components/TaskEditor";
 import SettingsEditor from "./components/SettingsEditor";
-import SyllabusImport from "./components/SyllabusImport";
+import EventImport from "./components/EventImport";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AppProvider, useApp } from "./store/AppStore";
 import { uid } from "./lib/id";
@@ -86,7 +86,7 @@ function CalendarApp() {
           onEditCalendar={(calendar) => setCalEdit({ calendar })}
           onNewEvent={() => newEvent(toISO(anchor), 9, 10)}
           onOpenSettings={() => setSettingsOpen(true)}
-          onImportSyllabus={() => setImportOpen(true)}
+          onImport={() => setImportOpen(true)}
         />
         {view === "month" ? (
           <MonthGrid
@@ -125,7 +125,7 @@ function CalendarApp() {
         <TaskEditor task={taskEdit.task} onClose={() => setTaskEdit(null)} />
       )}
       {settingsOpen && <SettingsEditor onClose={() => setSettingsOpen(false)} />}
-      {importOpen && <SyllabusImport onClose={() => setImportOpen(false)} />}
+      {importOpen && <EventImport onClose={() => setImportOpen(false)} />}
     </div>
   );
 }

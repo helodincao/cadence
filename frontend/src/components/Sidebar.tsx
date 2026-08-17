@@ -11,7 +11,7 @@ interface Props {
   onEditCalendar: (calendar: Calendar) => void;
   onNewEvent: () => void;
   onOpenSettings: () => void;
-  onImportSyllabus: () => void;
+  onImport: () => void;
 }
 
 const MONTHS = [
@@ -38,7 +38,7 @@ export default function Sidebar({
   onEditCalendar,
   onNewEvent,
   onOpenSettings,
-  onImportSyllabus,
+  onImport,
 }: Props) {
   const { calendars, toggleCalendar, resetAll } = useApp();
   const today = new Date();
@@ -162,8 +162,8 @@ export default function Sidebar({
         <button className={styles.action} onClick={onOpenSettings}>
           <span aria-hidden="true">⚙</span> <b>Preferences</b>
         </button>
-        <button className={styles.action} onClick={onImportSyllabus}>
-          <span aria-hidden="true">＋</span> <b>Import syllabus</b>
+        <button className={styles.action} onClick={onImport}>
+          <span aria-hidden="true">✦</span> <b>Import Event Details</b>
         </button>
       </div>
 

@@ -30,28 +30,45 @@ export async function putState(state: AppStateDTO): Promise<void> {
   if (!res.ok) throw new Error(`state PUT ${res.status}`);
 }
 
-export interface ParsedTask {
+export interface ImportedTask {
   title: string;
-  dueDate: string | null; // ISO "YYYY-MM-DD", or null if the parser couldn't resolve one
+  dueDate: string | null; // ISO "YYYY-MM-DD", or null if none was resolved
   dueDateText: string | null;
   effortHours: number;
   priority: Priority;
 }
 
-export interface ParseResult {
-  tasks: ParsedTask[];
-  /** "ai" = parsed by Claude; "heuristic" = regex fallback (no API key). */
+export interface ImportedEvent {
+  title: string;
+  date: string; // ISO
+  start: number; // decimal 24h hour
+  end: number;
+}
+
+export interface ImportResult {
+  note: string;
+  tasks: ImportedTask[];
+  events: ImportedEvent[];
+  /** "ai" = planned by Claude; "heuristic" = regex fallback (no API key). */
   source: "ai" | "heuristic";
 }
 
-export async function parseSyllabus(text: string): Promise<ParseResult> {
+/** Send an instruction + optional files to the AI import endpoint.
+ *  Pass `deadline` (ISO "YYYY-MM-DD") to frame the result as work sessions
+ *  that must finish on or before that date (the event editor's "plan work"). */
+export async function importDetails(
+  prompt: string,
+  files: File[],
+  deadline?: string,
+): Promise<ImportResult> {
+  const fd = new FormData();
+  fd.append("prompt", prompt);
+  if (deadline) fd.append("deadline", deadline);
+  for (const f of files) fd.append("files", f);
+
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/api/parse-syllabus`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
+    res = await fetch(`${API_BASE}/api/import`, { method: "POST", body: fd });
   } catch {
     throw new Error(
       "Can't reach the backend. Start it with `cd backend && uvicorn main:app --port 8000`.",
