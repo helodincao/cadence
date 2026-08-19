@@ -3,6 +3,7 @@ import type { CalEvent, EventKind } from "../types";
 import { useApp } from "../store/AppStore";
 import { END_HOUR, START_HOUR, formatShortDate, formatTime } from "../lib/time";
 import { uid } from "../lib/id";
+import { DEFAULT_CALENDAR_COLOR } from "../lib/palette";
 import { importDetails, type ImportedTask } from "../lib/api";
 import Modal from "./Modal";
 import Select from "./Select";
@@ -20,8 +21,15 @@ const TIME_OPTIONS: number[] = [];
 for (let h = START_HOUR; h <= END_HOUR; h += 0.5) TIME_OPTIONS.push(h);
 
 export default function EventEditor({ event, isNew, onClose }: Props) {
-  const { calendars, addEvent, updateEvent, deleteEvent, addTask, planWeek } =
-    useApp();
+  const {
+    calendars,
+    addCalendar,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    addTask,
+    planWeek,
+  } = useApp();
 
   const [title, setTitle] = useState(event.title);
   const [calendarId, setCalendarId] = useState(
@@ -72,10 +80,24 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   function save() {
     // Keep end after start by at least one 30-min slot.
     const safeEnd = end > start ? end : Math.min(start + 0.5, END_HOUR);
+
+    // No calendar chosen (e.g. a first-ever one-off event) — quietly create a
+    // default one so the event has a home, without making the user do it first.
+    let calId = calendarId;
+    if (!calId) {
+      calId = uid();
+      addCalendar({
+        id: calId,
+        name: "My Calendar",
+        color: DEFAULT_CALENDAR_COLOR,
+        visible: true,
+      });
+    }
+
     const next: CalEvent = {
       id: event.id,
       title: title.trim() || "Untitled",
-      calendarId,
+      calendarId: calId,
       date,
       start,
       end: safeEnd,
@@ -85,12 +107,12 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
     if (isNew) addEvent(next);
     else updateEvent(event.id, next);
 
-    // Commit any AI-planned work sessions as tasks due on/before this event,
-    // then let the scheduler place blocks for them.
+    // Commit any Cadence-planned work sessions as tasks due on/before this
+    // event, then let the scheduler place blocks for them.
     for (const t of pending) {
       addTask({
         id: uid(),
-        calendarId,
+        calendarId: calId,
         title: t.title,
         dueDate: dueFor(t),
         effortHours: t.effortHours,
@@ -131,15 +153,17 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
         />
       </div>
 
-      <div className={f.field}>
-        <span className={f.label}>Calendar</span>
-        <Select
-          ariaLabel="Calendar"
-          value={calendarId}
-          options={calendars.map((c) => ({ value: c.id, label: c.name }))}
-          onChange={setCalendarId}
-        />
-      </div>
+      {calendars.length > 0 && (
+        <div className={f.field}>
+          <span className={f.label}>Calendar</span>
+          <Select
+            ariaLabel="Calendar"
+            value={calendarId}
+            options={calendars.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={setCalendarId}
+          />
+        </div>
+      )}
 
       <div className={f.field}>
         <label className={f.label} htmlFor="ev-date">
@@ -213,7 +237,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
             onClick={() => setAiOpen(true)}
           >
             <span aria-hidden="true">✦</span>
-            Plan work sessions with AI
+            Plan work sessions with Cadence
             <span className={s.aiToggleChevron} aria-hidden="true">
               ▸
             </span>
@@ -222,7 +246,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
           <div className={s.aiPanel}>
             <p className={s.aiHint}>
               Describe what you want out of these sessions and attach any files.
-              The AI estimates the work and allocates time before{" "}
+              Cadence estimates the work and allocates time before{" "}
               {formatShortDate(date)}.
             </p>
 
@@ -298,7 +322,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
                   <span
                     className={`${s.badge} ${aiSource === "ai" ? "" : s.badgeWarn}`}
                   >
-                    {aiSource === "ai" ? "✦ AI" : "APPROX"}
+                    {aiSource === "ai" ? "✦ Cadence" : "APPROX"}
                   </span>
                   {aiNote}
                 </div>

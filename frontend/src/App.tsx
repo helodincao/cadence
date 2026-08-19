@@ -23,7 +23,7 @@ type EventEdit = { event: CalEvent; isNew: boolean } | null;
 type TaskEdit = { task: Task | null } | null;
 
 function CalendarApp() {
-  const { planWeek, calendars } = useApp();
+  const { planWeek } = useApp();
 
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
@@ -57,11 +57,8 @@ function CalendarApp() {
   }
 
   function newEvent(dateISO: string, start: number, end: number) {
-    // Can't place an event without a calendar — guide new users to make one first.
-    if (calendars.length === 0) {
-      setCalEdit({ calendar: null });
-      return;
-    }
+    // No calendar needed up front — the editor creates a default one on save
+    // if none exists yet, so quick one-off events don't require setup.
     setEventEdit({
       event: { id: uid(), calendarId: "", title: "", date: dateISO, start, end, kind: "fixed" },
       isNew: true,

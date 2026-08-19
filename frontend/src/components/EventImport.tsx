@@ -148,7 +148,7 @@ export default function EventImport({ onClose }: Props) {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder={
-                "Tell the AI what to do, e.g.\n\n" +
+                "Tell Cadence what to do, e.g.\n\n" +
                 "• This project is due next Friday — based on its complexity, schedule time to work on it.\n" +
                 "• This is my class syllabus — schedule all the assignment due dates and exams."
               }
@@ -177,7 +177,7 @@ export default function EventImport({ onClose }: Props) {
         <>
           <div className={s.sourceNote}>
             <span className={`${s.badge} ${source === "ai" ? "" : s.badgeWarn}`}>
-              {source === "ai" ? "✦ AI" : "APPROX"}
+              {source === "ai" ? "✦ Cadence" : "APPROX"}
             </span>
             {note}
           </div>
