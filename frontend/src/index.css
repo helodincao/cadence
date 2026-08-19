@@ -8,12 +8,16 @@
    are tokens so both themes share one set of component styles.
    ============================================================ */
 :root {
+  color-scheme: dark; /* native inputs, date picker, scrollbars follow the theme */
+
   /* Grounds */
   --bg: #000103;
   --bg-2: #060c15;
   --surface: rgba(9, 20, 33, 0.66); /* glassy HUD panel */
   --surface-solid: #06101b;
   --surface-2: rgba(53, 200, 255, 0.05);
+  --field-bg: rgba(0, 2, 6, 0.5); /* text inputs / textareas */
+  --inset-bg: rgba(0, 2, 6, 0.4); /* recessed cards, rows, dropzones */
 
   /* Lines */
   --line: rgba(70, 205, 255, 0.22);
@@ -55,11 +59,15 @@
 /* ---- Light theme: same tokens, daylight values. Kept readable with the same
    cyan/gold accents (darkened for contrast) and much softer glows. ---- */
 :root[data-theme="light"] {
+  color-scheme: light;
+
   --bg: #eef3f7;
   --bg-2: #e3ebf1;
   --surface: rgba(255, 255, 255, 0.72);
   --surface-solid: #f7fafc;
   --surface-2: rgba(6, 110, 140, 0.05);
+  --field-bg: rgba(255, 255, 255, 0.92);
+  --inset-bg: rgba(255, 255, 255, 0.5);
 
   --line: rgba(8, 110, 140, 0.28);
   --line-soft: rgba(8, 110, 140, 0.12);

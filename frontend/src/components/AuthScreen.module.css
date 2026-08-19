@@ -53,7 +53,7 @@
 }
 .input {
   width: 100%;
-  background: rgba(0, 2, 6, 0.4);
+  background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 3px;
   padding: 10px;

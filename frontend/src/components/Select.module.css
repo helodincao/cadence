@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 2, 6, 0.5);
+  background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 3px;
   padding: 9px 10px;

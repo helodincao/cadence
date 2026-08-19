@@ -17,7 +17,7 @@
 .input,
 .select {
   width: 100%;
-  background: rgba(0, 2, 6, 0.5);
+  background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 3px;
   padding: 9px 10px;
@@ -43,10 +43,10 @@
 }
 
 /* Native date input, themed as close to the HUD as the platform allows.
-   color-scheme:dark makes the browser's own date picker render dark. */
+   color-scheme is inherited from :root so the native picker matches the theme. */
 .dateInput {
   width: 100%;
-  background: rgba(0, 2, 6, 0.5);
+  background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: 3px;
   padding: 8px 10px;
@@ -54,7 +54,6 @@
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.03em;
-  color-scheme: dark;
 }
 .dateInput:focus {
   outline: none;

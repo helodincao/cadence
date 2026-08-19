@@ -109,8 +109,7 @@ def signup(creds: Credentials, response: Response):
     with SessionLocal() as s:
         if s.query(User).filter(User.email == email).first():
             raise HTTPException(status_code=409, detail="That email is already registered.")
-        # Check before adding (autoflush would otherwise count the new row).
-        first_user = s.query(User).count() == 0
+        # New accounts start with an empty workspace — the user builds their own.
         user = User(
             id=uuid.uuid4().hex,
             email=email,
@@ -118,11 +117,6 @@ def signup(creds: Credentials, response: Response):
             created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
         )
         s.add(user)
-        # The very first account adopts any pre-auth (orphan) demo data.
-        if first_user:
-            for Row in (CalRow, EvRow, TaskRow, SettingsRow):
-                for row in s.query(Row).filter(Row.user_id.is_(None)).all():
-                    row.user_id = user.id
         s.commit()
         uid = user.id
         uemail = user.email

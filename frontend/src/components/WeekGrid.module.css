@@ -58,7 +58,7 @@
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink);
 }
 .dnum {
   font-family: var(--font-display);
@@ -83,6 +83,9 @@
 .scroll {
   flex: 1;
   overflow-y: auto;
+  /* Breathing room so the first hour label (08:00, nudged up half a line) isn't
+     clipped under the day-of-week header. */
+  padding-top: 10px;
 }
 .body {
   position: relative;

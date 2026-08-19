@@ -57,6 +57,12 @@ function seed(): AppState {
   };
 }
 
+// A brand-new workspace: nothing until the user creates it. New accounts start
+// here (no demo data); "Reset demo data" in the sidebar loads the samples.
+function emptyState(): AppState {
+  return { calendars: [], events: [], tasks: [], settings: DEFAULT_SETTINGS };
+}
+
 function initialState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -75,9 +81,9 @@ function initialState(): AppState {
       }
     }
   } catch {
-    /* ignore malformed storage and fall back to samples */
+    /* ignore malformed storage and fall back to an empty workspace */
   }
-  return seed();
+  return emptyState();
 }
 
 function reducer(state: AppState, action: Action): AppState {

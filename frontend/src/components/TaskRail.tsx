@@ -4,6 +4,9 @@ import { formatShortDate } from "../lib/time";
 import styles from "./TaskRail.module.css";
 
 interface Props {
+  /** Show only tasks relevant to this date range (the current view period). */
+  rangeStart: string; // ISO YYYY-MM-DD
+  rangeEnd: string;
   onNewTask: () => void;
   onEditTask: (task: Task) => void;
 }
@@ -11,7 +14,12 @@ interface Props {
 const RANK = { high: 3, med: 2, low: 1 } as const;
 const PRIORITY_LABEL = { high: "HIGH", med: "MED", low: "LOW" } as const;
 
-export default function TaskRail({ onNewTask, onEditTask }: Props) {
+export default function TaskRail({
+  rangeStart,
+  rangeEnd,
+  onNewTask,
+  onEditTask,
+}: Props) {
   const { tasks, events, calendars, updateTask } = useApp();
 
   const colorOf = (id: string) =>
@@ -23,14 +31,24 @@ export default function TaskRail({ onNewTask, onEditTask }: Props) {
       .filter((e) => e.taskId === taskId)
       .reduce((sum, e) => sum + (e.end - e.start), 0);
 
-  const ordered = [...tasks].sort(
+  // A task is "applicable" to the viewed period if it's due within it, or it
+  // has any work block scheduled within it — so navigating to an empty week
+  // shows an empty inbox.
+  const inRange = (iso: string) => iso >= rangeStart && iso <= rangeEnd;
+  const applicable = tasks.filter(
+    (t) =>
+      inRange(t.dueDate) ||
+      events.some((e) => e.taskId === t.id && inRange(e.date)),
+  );
+
+  const ordered = [...applicable].sort(
     (a, b) =>
       Number(a.done ?? false) - Number(b.done ?? false) ||
       RANK[b.priority] - RANK[a.priority] ||
       a.dueDate.localeCompare(b.dueDate),
   );
 
-  const openCount = tasks.filter((t) => !t.done).length;
+  const openCount = applicable.filter((t) => !t.done).length;
 
   return (
     <aside className={styles.rail}>
@@ -116,9 +134,11 @@ export default function TaskRail({ onNewTask, onEditTask }: Props) {
           );
         })}
 
-        {tasks.length === 0 && (
+        {ordered.length === 0 && (
           <p className={styles.empty}>
-            No tasks yet. Add one with ＋, then hit Plan Week.
+            {tasks.length === 0
+              ? "No tasks yet. Add one with ＋, then hit Plan Week."
+              : "No tasks for this period. Navigate to a week with work due."}
           </p>
         )}
       </div>

@@ -23,7 +23,7 @@ type EventEdit = { event: CalEvent; isNew: boolean } | null;
 type TaskEdit = { task: Task | null } | null;
 
 function CalendarApp() {
-  const { planWeek } = useApp();
+  const { planWeek, calendars } = useApp();
 
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
@@ -57,11 +57,27 @@ function CalendarApp() {
   }
 
   function newEvent(dateISO: string, start: number, end: number) {
+    // Can't place an event without a calendar — guide new users to make one first.
+    if (calendars.length === 0) {
+      setCalEdit({ calendar: null });
+      return;
+    }
     setEventEdit({
       event: { id: uid(), calendarId: "", title: "", date: dateISO, start, end, kind: "fixed" },
       isNew: true,
     });
   }
+
+  // The date range the task rail should show tasks for (the current view period).
+  const taskRange = useMemo(() => {
+    if (view === "day") return { start: toISO(anchor), end: toISO(anchor) };
+    if (view === "month") {
+      const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+      const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+      return { start: toISO(first), end: toISO(last) };
+    }
+    return { start: toISO(weekStart), end: toISO(addDays(weekStart, 6)) };
+  }, [view, anchor, weekStart]);
 
   function handlePlan() {
     planWeek();
@@ -106,6 +122,8 @@ function CalendarApp() {
           />
         )}
         <TaskRail
+          rangeStart={taskRange.start}
+          rangeEnd={taskRange.end}
           onNewTask={() => setTaskEdit({ task: null })}
           onEditTask={(task) => setTaskEdit({ task })}
         />
