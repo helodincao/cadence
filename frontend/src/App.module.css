@@ -49,3 +49,17 @@
     transform: translate(-50%, 8px);
   }
 }
+
+/* Full-screen loading splash shown while the initial session check resolves. */
+.splash {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  grid-auto-flow: column;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  color: var(--ink-2);
+  font-size: 18px;
+}

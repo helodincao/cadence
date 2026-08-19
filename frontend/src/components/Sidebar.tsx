@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Calendar } from "../types";
 import { useApp } from "../store/AppStore";
+import { useAuth } from "../store/AuthStore";
 import { isSameDay } from "../lib/time";
 import styles from "./Sidebar.module.css";
 
@@ -41,6 +42,7 @@ export default function Sidebar({
   onImport,
 }: Props) {
   const { calendars, toggleCalendar, resetAll } = useApp();
+  const { user, logout } = useAuth();
   const today = new Date();
 
   // The mini-month can browse independently, but follows the main view.
@@ -170,6 +172,15 @@ export default function Sidebar({
       <button className={styles.reset} onClick={resetAll}>
         Reset demo data
       </button>
+
+      <div className={styles.account}>
+        <span className={styles.email} title={user?.email}>
+          {user?.email}
+        </span>
+        <button className={styles.signout} onClick={() => logout()}>
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }

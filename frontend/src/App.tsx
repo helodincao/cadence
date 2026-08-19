@@ -10,7 +10,9 @@ import TaskEditor from "./components/TaskEditor";
 import SettingsEditor from "./components/SettingsEditor";
 import EventImport from "./components/EventImport";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AuthScreen from "./components/AuthScreen";
 import { AppProvider, useApp } from "./store/AppStore";
+import { AuthProvider, useAuth } from "./store/AuthStore";
 import { uid } from "./lib/id";
 import { addDays, DAY_NAMES, startOfWeek, toISO } from "./lib/time";
 import type { Calendar, CalEvent, Task } from "./types";
@@ -130,12 +132,30 @@ function CalendarApp() {
   );
 }
 
+function Gate() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className={styles.splash}>
+        <span aria-hidden="true">◈</span> CADENCE
+      </div>
+    );
+  }
+  if (!user) return <AuthScreen />;
+  // Remount the data store per user so each session loads its own workspace.
+  return (
+    <AppProvider key={user.id}>
+      <CalendarApp />
+    </AppProvider>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <CalendarApp />
-      </AppProvider>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

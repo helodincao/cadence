@@ -1,31 +1,48 @@
 """Cadence backend — FastAPI service.
 
-- Syllabus parsing:  POST /api/parse-syllabus
-- Persistence:       GET/PUT /api/state  (SQLite, single-user, no auth yet)
+- Auth:          POST /api/auth/signup | /login | /logout, GET /api/auth/me
+- AI import:     POST /api/import           (session required)
+- Persistence:   GET/PUT /api/state         (session required, per-user)
 
-Run:  uvicorn main:app --reload --port 8000
+Sessions are httpOnly cookies; each user's calendars/events/tasks/settings are
+scoped by user_id. Run:  uvicorn main:app --reload --port 8010
 """
 
+import datetime
+import re
+import uuid
 from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
 
-# Load backend/.env (ANTHROPIC_API_KEY, optional CADENCE_MODEL) before importing
-# extractor, which reads those at import time. .env is gitignored — keep secrets
-# there, never in code. This must run before `from extractor import ...`.
+# Load backend/.env (ANTHROPIC_API_KEY / GEMINI_API_KEY, optional model vars)
+# before importing extractor, which reads those at import time. .env is
+# gitignored — keep secrets there, never in code.
 load_dotenv()
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import auth
 import db
-from db import Calendar as CalRow, Event as EvRow, SettingsRow, SessionLocal, Task as TaskRow
+from auth import current_user
+from db import (
+    Calendar as CalRow,
+    Event as EvRow,
+    SessionLocal,
+    SettingsRow,
+    Task as TaskRow,
+    User,
+)
 from extractor import active_model, active_provider, import_plan
 
-app = FastAPI(title="Cadence API", version="0.2.0")
+app = FastAPI(title="Cadence API", version="0.3.0")
 db.init_db()
 
+# Cookies require an explicit origin allow-list (no wildcard) with credentials.
+# In dev the frontend usually reaches us through the Vite proxy (same-origin),
+# but these keep direct cross-origin access working too.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -34,14 +51,12 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
     ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# --------------------------------------------------------------------------
-# AI import — files + instruction → tasks + events
-# --------------------------------------------------------------------------
 @app.get("/api/health")
 def health():
     provider = active_provider()
@@ -53,18 +68,109 @@ def health():
     }
 
 
+# --------------------------------------------------------------------------
+# Auth
+# --------------------------------------------------------------------------
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class Credentials(BaseModel):
+    email: str
+    password: str
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+
+
+def _set_session_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=auth.COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,  # dev over http; set True behind HTTPS in production
+        max_age=auth.SESSION_DAYS * 24 * 3600,
+        path="/",
+    )
+
+
+@app.post("/api/auth/signup", response_model=UserOut)
+def signup(creds: Credentials, response: Response):
+    email = creds.email.strip().lower()
+    if not _EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+    if not (auth.MIN_PASSWORD_LEN <= len(creds.password) <= auth.MAX_PASSWORD_LEN):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be {auth.MIN_PASSWORD_LEN}–{auth.MAX_PASSWORD_LEN} characters.",
+        )
+    with SessionLocal() as s:
+        if s.query(User).filter(User.email == email).first():
+            raise HTTPException(status_code=409, detail="That email is already registered.")
+        # Check before adding (autoflush would otherwise count the new row).
+        first_user = s.query(User).count() == 0
+        user = User(
+            id=uuid.uuid4().hex,
+            email=email,
+            password_hash=auth.hash_password(creds.password),
+            created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        )
+        s.add(user)
+        # The very first account adopts any pre-auth (orphan) demo data.
+        if first_user:
+            for Row in (CalRow, EvRow, TaskRow, SettingsRow):
+                for row in s.query(Row).filter(Row.user_id.is_(None)).all():
+                    row.user_id = user.id
+        s.commit()
+        uid = user.id
+        uemail = user.email
+    token = auth.create_session(uid)
+    _set_session_cookie(response, token)
+    return UserOut(id=uid, email=uemail)
+
+
+@app.post("/api/auth/login", response_model=UserOut)
+def login(creds: Credentials, response: Response):
+    email = creds.email.strip().lower()
+    with SessionLocal() as s:
+        user = s.query(User).filter(User.email == email).first()
+        if user is None or not auth.verify_password(creds.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Wrong email or password.")
+        uid, uemail = user.id, user.email
+    token = auth.create_session(uid)
+    _set_session_cookie(response, token)
+    return UserOut(id=uid, email=uemail)
+
+
+@app.post("/api/auth/logout")
+def logout(response: Response, cadence_session: Optional[str] = Cookie(default=None)):
+    if cadence_session:
+        auth.delete_session(cadence_session)
+    response.delete_cookie(auth.COOKIE_NAME, path="/")
+    return {"ok": True}
+
+
+@app.get("/api/auth/me", response_model=UserOut)
+def me(user: User = Depends(current_user)):
+    return UserOut(id=user.id, email=user.email)
+
+
+# --------------------------------------------------------------------------
+# AI import (session required)
+# --------------------------------------------------------------------------
 @app.post("/api/import")
 async def import_details(
     prompt: str = Form(""),
     deadline: str = Form(""),
     files: List[UploadFile] = File(default=[]),
+    user: User = Depends(current_user),
 ):
     """Turn an instruction + uploaded files into tasks + events to schedule.
 
-    When ``deadline`` (ISO YYYY-MM-DD) is given, the plan is framed as work
-    sessions leading up to that date (the event editor's "plan work" flow).
-
-    Returns {note, tasks, events, source}.
+    Requires a session (protects the AI key from anonymous use). Returns
+    {note, tasks, events, source}.
     """
     uploaded = [((f.filename or "file"), await f.read(), (f.content_type or "")) for f in files]
     try:
@@ -82,8 +188,8 @@ async def import_details(
 
 
 # --------------------------------------------------------------------------
-# State persistence — the frontend syncs its whole state here.
-# Field names are camelCase to match the frontend store exactly.
+# State persistence — the frontend syncs its whole workspace here.
+# Scoped to the signed-in user. camelCase to match the frontend store.
 # --------------------------------------------------------------------------
 class CalendarM(BaseModel):
     id: str
@@ -145,11 +251,11 @@ class StateM(BaseModel):
 
 
 @app.get("/api/state", response_model=StateM)
-def get_state():
+def get_state(user: User = Depends(current_user)):
     with SessionLocal() as s:
         calendars = [
             CalendarM(id=c.id, name=c.name, color=c.color, visible=c.visible)
-            for c in s.query(CalRow).all()
+            for c in s.query(CalRow).filter(CalRow.user_id == user.id).all()
         ]
         events = [
             EventM(
@@ -157,16 +263,16 @@ def get_state():
                 start=e.start, end=e.end, kind=e.kind,
                 locked=e.locked or None, taskId=e.task_id,
             )
-            for e in s.query(EvRow).all()
+            for e in s.query(EvRow).filter(EvRow.user_id == user.id).all()
         ]
         tasks = [
             TaskM(
                 id=t.id, calendarId=t.calendar_id, title=t.title, dueDate=t.due_date,
                 effortHours=t.effort_hours, priority=t.priority, done=t.done or None,
             )
-            for t in s.query(TaskRow).all()
+            for t in s.query(TaskRow).filter(TaskRow.user_id == user.id).all()
         ]
-        row = s.query(SettingsRow).first()
+        row = s.query(SettingsRow).filter(SettingsRow.user_id == user.id).first()
         settings = (
             SettingsM(
                 workDayStart=row.work_day_start, workDayEnd=row.work_day_end,
@@ -181,30 +287,30 @@ def get_state():
 
 
 @app.put("/api/state")
-def put_state(state: StateM):
-    """Replace the whole workspace (simple + transactional for single-user)."""
+def put_state(state: StateM, user: User = Depends(current_user)):
+    """Replace this user's whole workspace (transactional, scoped by user_id)."""
     with SessionLocal() as s:
-        s.query(EvRow).delete()
-        s.query(TaskRow).delete()
-        s.query(CalRow).delete()
-        s.query(SettingsRow).delete()
+        s.query(EvRow).filter(EvRow.user_id == user.id).delete()
+        s.query(TaskRow).filter(TaskRow.user_id == user.id).delete()
+        s.query(CalRow).filter(CalRow.user_id == user.id).delete()
+        s.query(SettingsRow).filter(SettingsRow.user_id == user.id).delete()
 
         for c in state.calendars:
-            s.add(CalRow(id=c.id, name=c.name, color=c.color, visible=c.visible))
+            s.add(CalRow(id=c.id, user_id=user.id, name=c.name, color=c.color, visible=c.visible))
         for e in state.events:
             s.add(EvRow(
-                id=e.id, calendar_id=e.calendarId, title=e.title, date=e.date,
+                id=e.id, user_id=user.id, calendar_id=e.calendarId, title=e.title, date=e.date,
                 start=e.start, end=e.end, kind=e.kind,
                 locked=bool(e.locked), task_id=e.taskId,
             ))
         for t in state.tasks:
             s.add(TaskRow(
-                id=t.id, calendar_id=t.calendarId, title=t.title, due_date=t.dueDate,
+                id=t.id, user_id=user.id, calendar_id=t.calendarId, title=t.title, due_date=t.dueDate,
                 effort_hours=t.effortHours, priority=t.priority, done=bool(t.done),
             ))
         g = state.settings
         s.add(SettingsRow(
-            id=1, work_day_start=g.workDayStart, work_day_end=g.workDayEnd,
+            user_id=user.id, work_day_start=g.workDayStart, work_day_end=g.workDayEnd,
             max_focus_hours=g.maxFocusHours, max_work_hours_per_day=g.maxWorkHoursPerDay,
             include_weekends=g.includeWeekends, break_enabled=g.breakEnabled,
             break_start=g.breakStart, break_end=g.breakEnd,

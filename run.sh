@@ -53,8 +53,9 @@ if lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
   exit 1
 fi
 
-# Keep the frontend pointed at whatever backend port we actually use.
-export VITE_API_BASE="http://127.0.0.1:$PORT"
+# The frontend talks to the backend through the Vite proxy (same-origin /api),
+# so cookies work without CORS friction. Point the proxy at our backend port.
+export CADENCE_BACKEND="http://127.0.0.1:$PORT"
 
 # --- launch both, clean up on exit ------------------------------------------
 pids=()

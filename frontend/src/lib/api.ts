@@ -1,14 +1,67 @@
-/* Client for the Cadence FastAPI backend (syllabus parsing).
-   The backend runs on :8000; see ../../backend/README.md. */
+/* Client for the Cadence FastAPI backend.
+   The frontend calls same-origin `/api/*`; in dev Vite proxies those to the
+   backend (see vite.config.ts) so session cookies work without CORS friction.
+   Override the base with VITE_API_BASE only when NOT using the proxy. */
 
 import type { Calendar, CalEvent, Priority, Settings, Task } from "../types";
 
-// 127.0.0.1 (not "localhost") — uvicorn binds IPv4, and "localhost" can resolve
-// to IPv6 (::1) in the browser, which the backend isn't listening on.
-// Override with VITE_API_BASE in frontend/.env (see frontend/.env.example).
-// Defaults to :8010 so it doesn't collide with anything already on :8000.
-const API_BASE =
-  (import.meta.env.VITE_API_BASE as string | undefined) ?? "http://127.0.0.1:8010";
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
+
+// Always send the session cookie (needed if VITE_API_BASE points cross-origin).
+const CREDS: RequestInit = { credentials: "include" };
+
+/** Thrown when the backend returns 401 — the caller should show the sign-in UI. */
+export class AuthError extends Error {}
+
+/** A signed-in user. */
+export interface User {
+  id: string;
+  email: string;
+}
+
+async function readError(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (body?.detail) return body.detail;
+  } catch {
+    /* non-JSON body */
+  }
+  return fallback;
+}
+
+export async function signup(email: string, password: string): Promise<User> {
+  const res = await fetch(`${API_BASE}/api/auth/signup`, {
+    ...CREDS,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(await readError(res, "Could not create the account."));
+  return res.json();
+}
+
+export async function login(email: string, password: string): Promise<User> {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    ...CREDS,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(await readError(res, "Could not sign in."));
+  return res.json();
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE}/api/auth/logout`, { ...CREDS, method: "POST" });
+}
+
+/** Returns the current user, or null if not signed in. */
+export async function me(): Promise<User | null> {
+  const res = await fetch(`${API_BASE}/api/auth/me`, CREDS);
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error(`auth/me ${res.status}`);
+  return res.json();
+}
 
 /** The whole workspace, as synced to/from the backend. */
 export interface AppStateDTO {
@@ -19,17 +72,20 @@ export interface AppStateDTO {
 }
 
 export async function getState(): Promise<AppStateDTO> {
-  const res = await fetch(`${API_BASE}/api/state`);
+  const res = await fetch(`${API_BASE}/api/state`, CREDS);
+  if (res.status === 401) throw new AuthError("Not signed in");
   if (!res.ok) throw new Error(`state GET ${res.status}`);
   return res.json();
 }
 
 export async function putState(state: AppStateDTO): Promise<void> {
   const res = await fetch(`${API_BASE}/api/state`, {
+    ...CREDS,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(state),
   });
+  if (res.status === 401) throw new AuthError("Not signed in");
   if (!res.ok) throw new Error(`state PUT ${res.status}`);
 }
 
@@ -71,12 +127,13 @@ export async function importDetails(
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/api/import`, { method: "POST", body: fd });
+    res = await fetch(`${API_BASE}/api/import`, { ...CREDS, method: "POST", body: fd });
   } catch {
     throw new Error(
-      "Can't reach the backend. Start it with `cd backend && uvicorn main:app --port 8010`.",
+      "Can't reach the backend. Start it with `./run.sh` (or `uvicorn main:app --port 8010`).",
     );
   }
+  if (res.status === 401) throw new AuthError("Not signed in");
   if (!res.ok) {
     let msg = `Backend error (${res.status}). Check its logs.`;
     try {

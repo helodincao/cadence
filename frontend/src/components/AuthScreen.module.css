@@ -1,0 +1,114 @@
+.screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 26px 22px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--glow-cyan-soft);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.mark {
+  color: var(--cyan);
+  font-size: 20px;
+  text-shadow: var(--text-glow);
+}
+.name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  font-size: 20px;
+  color: var(--ink);
+}
+.tagline {
+  margin: 0 0 16px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 6px;
+}
+.input {
+  width: 100%;
+  background: rgba(0, 2, 6, 0.4);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 10px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-soft);
+}
+.hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.error {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--urgent);
+  border: 1px solid var(--urgent);
+  border-radius: 3px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--urgent) 10%, transparent);
+}
+
+.submit {
+  margin-top: 16px;
+  padding: 11px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--cyan);
+  border: 1px solid var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+.submit:hover:not(:disabled) {
+  background: var(--cyan-bright);
+}
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.switch {
+  margin-top: 12px;
+  color: var(--ink-2);
+  font-size: 13px;
+  text-align: center;
+}
+.switch:hover {
+  color: var(--cyan);
+}

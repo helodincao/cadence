@@ -88,15 +88,18 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-The frontend talks to the backend at `http://127.0.0.1:8010` by default; set
-`VITE_API_BASE` in `frontend/.env` to point elsewhere (see `frontend/.env.example`).
+The frontend reaches the backend through Vite's dev proxy (same-origin `/api`),
+which the config points at `http://127.0.0.1:8010` (override with the
+`CADENCE_BACKEND` env var). First run shows a sign-in screen — create an account,
+and the first account created adopts any existing demo data.
 
 See `frontend/README.md` and `backend/README.md` for details.
 
 ## Status
 
-Working end to end: calendars, events, tasks, the scheduler, drag/re-flow,
-day/week/month navigation, preferences, syllabus import, and SQLite persistence.
+Working end to end: **accounts (sign up / sign in, httpOnly-cookie sessions,
+per-user data)**, calendars, events, tasks, the scheduler, drag/re-flow,
+side-by-side overlapping events, day/week/month navigation, preferences,
+light/dark themes, AI file import (Gemini or Anthropic), and SQLite persistence.
 
-**Next:** accounts / authentication (per-user data) to go from single-user to a
-multi-user website — see `docs/PLAN.md`.
+**Next:** Postgres + deploy for real multi-user hosting — see `docs/PLAN.md`.
