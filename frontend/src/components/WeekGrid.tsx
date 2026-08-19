@@ -58,6 +58,43 @@ const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
 const snapHalf = (h: number) => Math.round(h * 2) / 2;
 
+interface Lane {
+  lane: number;
+  lanes: number;
+}
+
+/** Assign overlapping events to side-by-side columns (like Google Calendar):
+ *  events that overlap in time share the width; non-overlapping ones stay full
+ *  width. Returns per-event {lane index, total lanes in its overlap cluster}. */
+function computeLanes(evs: CalEvent[]): Map<string, Lane> {
+  const res = new Map<string, Lane>();
+  const sorted = [...evs].sort((a, b) => a.start - b.start || a.end - b.end);
+  let cluster: CalEvent[] = [];
+  let clusterEnd = -Infinity;
+
+  const flush = () => {
+    const cols: CalEvent[][] = [];
+    for (const e of cluster) {
+      // First column whose last event has already ended by e.start.
+      const col = cols.find((c) => c[c.length - 1].end <= e.start);
+      if (col) col.push(e);
+      else cols.push([e]);
+    }
+    cols.forEach((col, ci) =>
+      col.forEach((e) => res.set(e.id, { lane: ci, lanes: cols.length })),
+    );
+    cluster = [];
+  };
+
+  for (const e of sorted) {
+    if (cluster.length && e.start >= clusterEnd) flush();
+    cluster.push(e);
+    clusterEnd = Math.max(clusterEnd, e.end);
+  }
+  flush();
+  return res;
+}
+
 export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
   const { calendars, events, updateEvent } = useApp();
   const today = new Date();
@@ -239,27 +276,31 @@ export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
           {days.map((date, i) => {
             const w = weekdayIndex(date);
             const iso = toISO(date);
+            const dayEvents = visibleEvents
+              .map(effective)
+              .filter((e) => e.date === iso);
+            const lanes = computeLanes(dayEvents);
             return (
               <div
                 key={i}
                 className={`${styles.dayCol} ${w >= 5 ? styles.weekendCol : ""}`}
                 onClick={(e) => handleDayClick(date, e)}
               >
-                {visibleEvents
-                  .map(effective)
-                  .filter((e) => e.date === iso)
-                  .map((e) =>
-                    isDragging && preview && preview.id === e.id ? null : (
-                      <EventBlock
-                        key={e.id}
-                        event={e}
-                        color={colorOf(e.calendarId)}
-                        dragging={dragMode === "resize" && preview?.id === e.id}
-                        onDragStart={(pe, mode) => startDrag(e, pe, mode)}
-                        onActivate={() => onEditEvent(e)}
-                      />
-                    ),
-                  )}
+                {dayEvents.map((e) => {
+                  const L = lanes.get(e.id);
+                  return isDragging && preview && preview.id === e.id ? null : (
+                    <EventBlock
+                      key={e.id}
+                      event={e}
+                      color={colorOf(e.calendarId)}
+                      lane={L?.lane ?? 0}
+                      lanes={L?.lanes ?? 1}
+                      dragging={dragMode === "resize" && preview?.id === e.id}
+                      onDragStart={(pe, mode) => startDrag(e, pe, mode)}
+                      onActivate={() => onEditEvent(e)}
+                    />
+                  );
+                })}
 
                 {isDragging && preview && preview.date === iso && (
                   <div

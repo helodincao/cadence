@@ -5,13 +5,14 @@
 import type { Calendar, CalEvent, Task } from "../types";
 import { addDays, startOfDay, startOfWeek, toISO } from "../lib/time";
 import { DEFAULT_CONFIG, schedule } from "../lib/scheduler";
+import { CALENDAR_COLORS } from "../lib/palette";
 
 export const sampleCalendars: Calendar[] = [
-  { id: "school", name: "School", color: "#ae1d1d", visible: true },
-  { id: "lab", name: "Lab", color: "#4dffd2", visible: true },
-  { id: "club", name: "Club (SW lead)", color: "#b18cff", visible: true },
-  { id: "health", name: "Health", color: "#7dff5e", visible: true },
-  { id: "jobs", name: "Job Hunt", color: "#ff6f9c", visible: false },
+  { id: "school", name: "School", color: CALENDAR_COLORS[0], visible: true }, // amber
+  { id: "lab", name: "Lab", color: CALENDAR_COLORS[2], visible: true }, // teal
+  { id: "club", name: "Club (SW lead)", color: CALENDAR_COLORS[7], visible: true }, // violet
+  { id: "health", name: "Health", color: CALENDAR_COLORS[3], visible: true }, // green
+  { id: "jobs", name: "Job Hunt", color: CALENDAR_COLORS[5], visible: false }, // pink
 ];
 
 const today = startOfDay(new Date());

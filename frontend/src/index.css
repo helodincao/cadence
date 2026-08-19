@@ -1,9 +1,11 @@
 /* ============================================================
    Cadence — "Stark HUD" theme.
-   A single dark, cyan-glow aesthetic inspired by the Jarvis
-   heads-up display: hairline glowing grid, neon readouts,
-   Orbitron / Rajdhani / Share Tech Mono type.
-   Committed dark theme — no light variant by design.
+   A dark, cyan-glow aesthetic inspired by the Jarvis heads-up
+   display: hairline glowing grid, neon readouts, Orbitron /
+   Rajdhani / Share Tech Mono type.
+   Dark is the default; a light variant is available via
+   <html data-theme="light"> (toggled in the top bar). All colors
+   are tokens so both themes share one set of component styles.
    ============================================================ */
 :root {
   /* Grounds */
@@ -50,6 +52,36 @@
   --gutter-width: 62px;
 }
 
+/* ---- Light theme: same tokens, daylight values. Kept readable with the same
+   cyan/gold accents (darkened for contrast) and much softer glows. ---- */
+:root[data-theme="light"] {
+  --bg: #eef3f7;
+  --bg-2: #e3ebf1;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-solid: #f7fafc;
+  --surface-2: rgba(6, 110, 140, 0.05);
+
+  --line: rgba(8, 110, 140, 0.28);
+  --line-soft: rgba(8, 110, 140, 0.12);
+  --grid-line: rgba(8, 110, 140, 0.08);
+
+  --ink: #0c2733;
+  --ink-2: #3c5c6b;
+  --ink-3: #6a8496;
+
+  --cyan: #0891b2;
+  --cyan-bright: #0e7490;
+  --gold: #b7791f;
+  --urgent: #dc2626;
+
+  --accent: var(--cyan);
+  --accent-soft: rgba(8, 145, 178, 0.12);
+
+  --glow-cyan: 0 0 8px rgba(8, 145, 178, 0.3);
+  --glow-cyan-soft: 0 0 14px rgba(8, 145, 178, 0.16);
+  --text-glow: none;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -82,6 +114,22 @@ body {
       rgba(80, 140, 255, 0.05),
       transparent 50%
     ),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    34px 34px,
+    34px 34px;
+  background-attachment: fixed;
+}
+
+/* Light theme ground: soft daylight wash + faint blueprint grid, no dark glow. */
+:root[data-theme="light"] body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 90% at 15% 108%, rgba(8, 145, 178, 0.06), transparent 55%),
+    radial-gradient(90% 80% at 100% -10%, rgba(80, 140, 255, 0.05), transparent 50%),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size:

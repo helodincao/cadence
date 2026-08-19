@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Calendar } from "../types";
 import { useApp } from "../store/AppStore";
 import { uid } from "../lib/id";
+import { CALENDAR_COLORS, DEFAULT_CALENDAR_COLOR } from "../lib/palette";
 import Modal from "./Modal";
 import f from "./forms.module.css";
 
@@ -11,18 +12,17 @@ interface Props {
   onClose: () => void;
 }
 
-// HUD-friendly neon presets.
-const PRESETS = [
-  "#35d3ff", "#4dffd2", "#7dff5e", "#ffc061",
-  "#ff9e3d", "#ff6f9c", "#ff4d4d", "#b18cff",
-];
+// Dual-mode presets (read well in light + dark) — see lib/palette.ts.
+const PRESETS = CALENDAR_COLORS;
 
 export default function CalendarEditor({ calendar, onClose }: Props) {
   const { addCalendar, updateCalendar, deleteCalendar } = useApp();
   const isNew = calendar === null;
 
   const [name, setName] = useState(calendar?.name ?? "");
-  const [color, setColor] = useState(calendar?.color ?? PRESETS[0]);
+  const [color, setColor] = useState<string>(
+    calendar?.color ?? DEFAULT_CALENDAR_COLOR,
+  );
 
   function save() {
     const clean = name.trim() || "Untitled";

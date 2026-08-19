@@ -1,7 +1,6 @@
 .event {
   position: absolute;
-  left: 3px;
-  right: 3px;
+  /* left + width are set inline per overlap lane (see EventBlock.tsx). */
   border-radius: 3px;
   padding: 5px 8px;
   overflow: hidden;
@@ -119,6 +118,11 @@
 }
 .block .title {
   color: var(--ev-color);
+}
+/* On light backgrounds, pure calendar colors as text can be too faint —
+   darken the block title toward ink while keeping its hue. */
+:global(:root[data-theme="light"]) .block .title {
+  color: color-mix(in srgb, var(--ev-color) 68%, #0c2733);
 }
 
 /* Locked block — pinned by the user: solid outline + gold accent tag. */

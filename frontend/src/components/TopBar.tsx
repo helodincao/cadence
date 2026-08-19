@@ -1,4 +1,5 @@
 import { addDays, DAY_NAMES, weekdayIndex } from "../lib/time";
+import ThemeToggle from "./ThemeToggle";
 import styles from "./TopBar.module.css";
 
 export type View = "day" | "week" | "month";
@@ -96,6 +97,8 @@ export default function TopBar({
       </div>
 
       <span className={styles.spacer} />
+
+      <ThemeToggle />
 
       <div className={`${styles.segment} hud-label`} role="group" aria-label="Calendar view">
         {(["day", "week", "month"] as View[]).map((v) => (

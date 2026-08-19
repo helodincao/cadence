@@ -1,0 +1,19 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1;
+  background: var(--surface-2);
+  transition: color 0.14s, border-color 0.14s, box-shadow 0.14s;
+}
+.toggle:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-soft);
+}
