@@ -1,27 +1,62 @@
 """Turn a user's request + attached files into a study/work plan.
 
-Two paths:
-  * AI path (ANTHROPIC_API_KEY set): the Anthropic SDK reads the instruction and
+Three paths, chosen by which API key is present (see ``active_provider``):
+  * Anthropic (ANTHROPIC_API_KEY): the Anthropic SDK reads the instruction and
     any attached files (PDF/image/text) and returns structured tasks + events.
-  * Heuristic path (no key): a small regex pass over the instruction text, so the
+  * Gemini (GEMINI_API_KEY / GOOGLE_API_KEY): Google's free-tier-friendly models,
+    also multimodal — reads PDFs and images natively. Same structured output.
+  * Heuristic (no key): a small regex pass over the instruction text, so the
     feature still runs and is testable without a key (files are ignored).
 
-Tasks are work that needs time allocated (the scheduler places blocks for them);
-events are fixed-time things (exams, quizzes, presentations, class sessions).
+Force one with CADENCE_PROVIDER=anthropic|gemini; otherwise the first provider
+with a key wins (Anthropic preferred for quality). Tasks are work that needs
+time allocated (the scheduler places blocks for them); events are fixed-time
+things (exams, quizzes, presentations, class sessions).
 """
 
 import base64
+import datetime
 import os
 import re
+import time
 from typing import List, Literal, Optional, Tuple
 
 from pydantic import BaseModel
 
-# Default to the strongest model per Anthropic guidance; override with
-# CADENCE_MODEL=claude-haiku-4-5 (or sonnet) to cut cost.
+# Anthropic model — strongest by default; CADENCE_MODEL=claude-sonnet-5 to cut cost.
 MODEL = os.environ.get("CADENCE_MODEL", "claude-opus-5")
+# Gemini model — a fast, free-tier-friendly default; override with CADENCE_GEMINI_MODEL.
+GEMINI_MODEL = os.environ.get("CADENCE_GEMINI_MODEL", "gemini-3.6-flash")
 
 Priority = Literal["low", "med", "high"]
+
+
+def _gemini_key() -> Optional[str]:
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+
+def active_provider() -> str:
+    """Which backend actually runs: 'anthropic', 'gemini', or 'none' (heuristic).
+
+    CADENCE_PROVIDER forces a choice (falling back to 'none' if that provider has
+    no key). Unset, the first provider with a key wins, Anthropic first.
+    """
+    choice = os.environ.get("CADENCE_PROVIDER", "").strip().lower()
+    if choice == "anthropic":
+        return "anthropic" if os.environ.get("ANTHROPIC_API_KEY") else "none"
+    if choice == "gemini":
+        return "gemini" if _gemini_key() else "none"
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return "anthropic"
+    if _gemini_key():
+        return "gemini"
+    return "none"
+
+
+def active_model() -> Optional[str]:
+    """The model id that will be used, or None on the heuristic path."""
+    prov = active_provider()
+    return {"anthropic": MODEL, "gemini": GEMINI_MODEL}.get(prov)
 
 # A file the frontend uploaded: (filename, raw bytes, content_type).
 UploadedFile = Tuple[str, bytes, str]
@@ -101,13 +136,37 @@ def _events_to_api(events: List[ImEvent]) -> List[dict]:
 
 
 # ---------------------------------------------------------------------------
-# AI path
+# Shared instruction text (provider-agnostic)
+# ---------------------------------------------------------------------------
+def _build_instruction(
+    prompt: str, text_snippets: List[str], deadline: Optional[str]
+) -> str:
+    today = datetime.date.today().isoformat()
+    instruction = prompt.strip() or "Plan the attached work."
+    if text_snippets:
+        instruction += "\n\nAttached text files:\n" + "\n\n".join(text_snippets)
+    instruction += (
+        f"\n\nToday's date is {today}. Resolve any relative or year-less dates "
+        "to the correct upcoming ISO date."
+    )
+    if deadline:
+        instruction += (
+            f"\n\nAll of this work leads up to a deadline on {deadline}. Break it "
+            "into work/preparation sessions that finish on or before that date. "
+            "Every task's due_date must be on or before {d}; if a task has no "
+            "explicit date, set its due_date to {d}. Return only tasks (no events) "
+            "unless the files clearly describe additional fixed-time exams or "
+            "sessions.".format(d=deadline)
+        )
+    return instruction
+
+
+# ---------------------------------------------------------------------------
+# Anthropic path
 # ---------------------------------------------------------------------------
 def _import_with_ai(
     prompt: str, files: List[UploadedFile], deadline: Optional[str] = None
 ) -> Optional[ImportResult]:
-    import datetime
-
     import anthropic  # imported lazily so the heuristic path needs no SDK
 
     content: list = []
@@ -130,24 +189,7 @@ def _import_with_ai(
         else:
             text_snippets.append(f"----- FILE: {name} -----\n{data.decode('utf-8', errors='ignore')}")
 
-    today = datetime.date.today().isoformat()
-    instruction = prompt.strip() or "Plan the attached work."
-    if text_snippets:
-        instruction += "\n\nAttached text files:\n" + "\n\n".join(text_snippets)
-    instruction += (
-        f"\n\nToday's date is {today}. Resolve any relative or year-less dates "
-        "to the correct upcoming ISO date."
-    )
-    if deadline:
-        instruction += (
-            f"\n\nAll of this work leads up to a deadline on {deadline}. Break it "
-            "into work/preparation sessions that finish on or before that date. "
-            "Every task's due_date must be on or before {d}; if a task has no "
-            "explicit date, set its due_date to {d}. Return only tasks (no events) "
-            "unless the files clearly describe additional fixed-time exams or "
-            "sessions.".format(d=deadline)
-        )
-    content.append({"type": "text", "text": instruction})
+    content.append({"type": "text", "text": _build_instruction(prompt, text_snippets, deadline)})
 
     client = anthropic.Anthropic()
     response = client.messages.parse(
@@ -158,6 +200,45 @@ def _import_with_ai(
         output_format=ImportResult,
     )
     return response.parsed_output
+
+
+# ---------------------------------------------------------------------------
+# Gemini path (Google's free tier; multimodal)
+# ---------------------------------------------------------------------------
+def _import_with_gemini(
+    prompt: str, files: List[UploadedFile], deadline: Optional[str] = None
+) -> Optional[ImportResult]:
+    from google import genai  # imported lazily so other paths need no SDK
+    from google.genai import errors, types
+
+    parts: list = []
+    text_snippets: list[str] = []
+    for name, data, mt in files:
+        if mt == "application/pdf" or mt.startswith("image/"):
+            parts.append(types.Part.from_bytes(data=data, mime_type=mt))
+        else:
+            text_snippets.append(f"----- FILE: {name} -----\n{data.decode('utf-8', errors='ignore')}")
+
+    parts.append(types.Part.from_text(text=_build_instruction(prompt, text_snippets, deadline)))
+
+    client = genai.Client(api_key=_gemini_key())
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT,
+        response_mime_type="application/json",
+        response_schema=ImportResult,
+    )
+    # The free tier throws transient 5xx "high demand" errors — retry a few times.
+    last_err: Optional[Exception] = None
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL, contents=parts, config=config
+            )
+            return response.parsed
+        except errors.ServerError as e:
+            last_err = e
+            time.sleep(2 * (attempt + 1))
+    raise last_err  # exhausted retries; surfaced as a clean error by the endpoint
 
 
 # ---------------------------------------------------------------------------
@@ -206,15 +287,24 @@ def import_plan(prompt: str, files: List[UploadedFile], deadline: Optional[str] 
     leading up to that date — used by the "plan work sessions for this event"
     flow in the event editor.
     """
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    provider = active_provider()
+
+    if provider == "none":
         text = prompt
         for name, data, mt in files:
             if not mt.startswith("image/") and mt != "application/pdf":
                 text += "\n" + data.decode("utf-8", errors="ignore")
-        note = "AI is off (no ANTHROPIC_API_KEY on the backend) — parsed the text with a simple rules pass; any PDF/image files were skipped."
+        note = (
+            "AI is off (no ANTHROPIC_API_KEY or GEMINI_API_KEY on the backend) — "
+            "parsed the text with a simple rules pass; any PDF/image files were skipped."
+        )
         return {"note": note, "tasks": _tasks_to_api(_heuristic(text, deadline)), "events": []}, "heuristic"
 
-    result = _import_with_ai(prompt, files, deadline)
+    result = (
+        _import_with_gemini(prompt, files, deadline)
+        if provider == "gemini"
+        else _import_with_ai(prompt, files, deadline)
+    )
     if not result:
         return {"note": "Nothing to schedule was found.", "tasks": [], "events": []}, "ai"
     return {

@@ -59,15 +59,16 @@ Two servers. **Backend** (creates a local `cadence.db`):
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8010
 ```
 
-For real AI syllabus parsing, set your key before starting the backend
-(otherwise it uses a regex fallback):
+For real AI parsing of syllabi/spec files (otherwise it uses a regex fallback),
+put a key in `backend/.env` — copy `backend/.env.example` and fill in one of:
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
+- `GEMINI_API_KEY` — Google Gemini, has a free tier ([get one](https://aistudio.google.com/apikey))
+- `ANTHROPIC_API_KEY` — Anthropic, paid, strongest quality
+
+If both are set, `CADENCE_PROVIDER=gemini|anthropic` picks the winner.
 
 **Frontend:**
 
@@ -76,6 +77,9 @@ cd frontend
 npm install
 npm run dev        # http://localhost:5173
 ```
+
+The frontend talks to the backend at `http://127.0.0.1:8010` by default; set
+`VITE_API_BASE` in `frontend/.env` to point elsewhere (see `frontend/.env.example`).
 
 See `frontend/README.md` and `backend/README.md` for details.
 

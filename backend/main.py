@@ -6,7 +6,6 @@
 Run:  uvicorn main:app --reload --port 8000
 """
 
-import os
 from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
@@ -16,13 +15,13 @@ from dotenv import load_dotenv
 # there, never in code. This must run before `from extractor import ...`.
 load_dotenv()
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import db
 from db import Calendar as CalRow, Event as EvRow, SettingsRow, SessionLocal, Task as TaskRow
-from extractor import MODEL, import_plan
+from extractor import active_model, active_provider, import_plan
 
 app = FastAPI(title="Cadence API", version="0.2.0")
 db.init_db()
@@ -45,7 +44,13 @@ app.add_middleware(
 # --------------------------------------------------------------------------
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "model": MODEL, "ai_enabled": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+    provider = active_provider()
+    return {
+        "status": "ok",
+        "provider": provider,
+        "model": active_model(),
+        "ai_enabled": provider != "none",
+    }
 
 
 @app.post("/api/import")
@@ -62,7 +67,17 @@ async def import_details(
     Returns {note, tasks, events, source}.
     """
     uploaded = [((f.filename or "file"), await f.read(), (f.content_type or "")) for f in files]
-    result, source = import_plan(prompt, uploaded, deadline or None)
+    try:
+        result, source = import_plan(prompt, uploaded, deadline or None)
+    except Exception as e:  # provider outage, rate limit, bad key, etc.
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"The AI provider ({active_provider()}) couldn't complete the "
+                f"request ({type(e).__name__}). It may be busy or rate-limited — "
+                "try again in a moment."
+            ),
+        )
     return {**result, "source": source}
 
 

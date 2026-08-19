@@ -5,7 +5,10 @@ import type { Calendar, CalEvent, Priority, Settings, Task } from "../types";
 
 // 127.0.0.1 (not "localhost") — uvicorn binds IPv4, and "localhost" can resolve
 // to IPv6 (::1) in the browser, which the backend isn't listening on.
-const API_BASE = "http://127.0.0.1:8000";
+// Override with VITE_API_BASE in frontend/.env (see frontend/.env.example).
+// Defaults to :8010 so it doesn't collide with anything already on :8000.
+const API_BASE =
+  (import.meta.env.VITE_API_BASE as string | undefined) ?? "http://127.0.0.1:8010";
 
 /** The whole workspace, as synced to/from the backend. */
 export interface AppStateDTO {
@@ -71,9 +74,18 @@ export async function importDetails(
     res = await fetch(`${API_BASE}/api/import`, { method: "POST", body: fd });
   } catch {
     throw new Error(
-      "Can't reach the backend. Start it with `cd backend && uvicorn main:app --port 8000`.",
+      "Can't reach the backend. Start it with `cd backend && uvicorn main:app --port 8010`.",
     );
   }
-  if (!res.ok) throw new Error(`Backend error (${res.status}). Check its logs.`);
+  if (!res.ok) {
+    let msg = `Backend error (${res.status}). Check its logs.`;
+    try {
+      const body = await res.json();
+      if (body?.detail) msg = body.detail; // FastAPI's clean error message
+    } catch {
+      /* non-JSON body — keep the generic message */
+    }
+    throw new Error(msg);
+  }
   return res.json();
 }
