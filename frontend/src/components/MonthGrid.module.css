@@ -47,11 +47,11 @@
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink-strong);
   border-right: 1px solid var(--line-soft);
 }
 .wknd {
-  color: var(--ink-3);
+  color: var(--ink-strong);
   background: rgba(53, 225, 255, 0.03);
 }
 
