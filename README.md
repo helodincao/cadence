@@ -53,7 +53,17 @@ ai_calendar/
 
 ## Getting started
 
-Two servers. **Backend** (creates a local `cadence.db`):
+**Quick start — one command** (sets up deps on first run, starts both servers,
+Ctrl+C stops both):
+
+```bash
+./run.sh
+```
+
+Add an AI key first (see below) for real file parsing. To run the two servers
+manually instead:
+
+**Backend** (creates a local `cadence.db`):
 
 ```bash
 cd backend
