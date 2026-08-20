@@ -85,6 +85,22 @@ export function formatRange(start: number, end: number): string {
   return `${formatTime(start)}–${formatTime(end)}`;
 }
 
+/** Round a decimal hour to the nearest 5 minutes. */
+export function snap5(hour: number): number {
+  return Math.round(hour * 12) / 12;
+}
+
+/** Decimal hour → "HH:MM" (5-min) for a native <input type="time">. */
+export function toHM(hour: number): string {
+  return formatTime(snap5(hour));
+}
+
+/** "HH:MM" from a time input → decimal hour (e.g. "12:20" → 12.333…). */
+export function fromHM(hm: string): number {
+  const [h, m] = hm.split(":").map(Number);
+  return (h || 0) + (m || 0) / 60;
+}
+
 /** Vertical offset (px) of an hour from the top of the grid body. */
 export function hourToOffset(hour: number): number {
   return (hour - START_HOUR) * HOUR_HEIGHT;

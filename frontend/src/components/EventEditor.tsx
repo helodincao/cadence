@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { CalEvent, EventKind } from "../types";
 import { useApp } from "../store/AppStore";
-import { END_HOUR, START_HOUR, formatShortDate, formatTime } from "../lib/time";
+import { END_HOUR, formatShortDate, fromHM, snap5, toHM } from "../lib/time";
 import { uid } from "../lib/id";
 import { DEFAULT_CALENDAR_COLOR } from "../lib/palette";
 import { importDetails, type ImportedTask } from "../lib/api";
@@ -16,13 +16,10 @@ interface Props {
   onClose: () => void;
 }
 
-// Half-hour marks from the first to the last grid hour.
-const TIME_OPTIONS: number[] = [];
-for (let h = START_HOUR; h <= END_HOUR; h += 0.5) TIME_OPTIONS.push(h);
-
 export default function EventEditor({ event, isNew, onClose }: Props) {
   const {
     calendars,
+    tasks,
     addCalendar,
     addEvent,
     updateEvent,
@@ -40,8 +37,13 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   const [end, setEnd] = useState(event.end);
   const [kind, setKind] = useState<EventKind>(event.kind);
   const [locked, setLocked] = useState(event.locked ?? false);
+  const [taskId, setTaskId] = useState(event.taskId ?? "");
 
-  // --- Optional AI panel: plan work sessions leading up to this event ---
+  // Inline "add a calendar" from within the picker.
+  const [addingCal, setAddingCal] = useState(false);
+  const [newCalName, setNewCalName] = useState("");
+
+  // --- Optional Cadence panel: plan work sessions leading up to this event ---
   const aiFileRef = useRef<HTMLInputElement>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiGoal, setAiGoal] = useState("");
@@ -77,9 +79,22 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
     }
   }
 
+  function createCalendar() {
+    const id = uid();
+    addCalendar({
+      id,
+      name: newCalName.trim() || "New Calendar",
+      color: DEFAULT_CALENDAR_COLOR,
+      visible: true,
+    });
+    setCalendarId(id);
+    setNewCalName("");
+    setAddingCal(false);
+  }
+
   function save() {
-    // Keep end after start by at least one 30-min slot.
-    const safeEnd = end > start ? end : Math.min(start + 0.5, END_HOUR);
+    // Keep end after start by at least one 5-min slot.
+    const safeEnd = end > start ? end : Math.min(start + 1 / 12, END_HOUR);
 
     // No calendar chosen (e.g. a first-ever one-off event) — quietly create a
     // default one so the event has a home, without making the user do it first.
@@ -94,15 +109,18 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
       });
     }
 
+    const linkedTask = kind === "block" && taskId ? taskId : undefined;
     const next: CalEvent = {
       id: event.id,
       title: title.trim() || "Untitled",
       calendarId: calId,
       date,
-      start,
-      end: safeEnd,
+      start: snap5(start),
+      end: snap5(safeEnd),
       kind,
-      locked: kind === "block" ? locked : undefined,
+      // A manual work block tied to a task is pinned so Plan Week keeps it.
+      locked: kind === "block" ? locked || !!linkedTask : undefined,
+      taskId: linkedTask,
     };
     if (isNew) addEvent(next);
     else updateEvent(event.id, next);
@@ -153,17 +171,56 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
         />
       </div>
 
-      {calendars.length > 0 && (
-        <div className={f.field}>
-          <span className={f.label}>Calendar</span>
+      <div className={f.field}>
+        <span className={f.label}>Calendar</span>
+        {calendars.length > 0 ? (
           <Select
             ariaLabel="Calendar"
             value={calendarId}
             options={calendars.map((c) => ({ value: c.id, label: c.name }))}
             onChange={setCalendarId}
           />
-        </div>
-      )}
+        ) : (
+          <div className={f.emptyNote}>No calendars available</div>
+        )}
+        {addingCal ? (
+          <div className={f.inlineAdd}>
+            <input
+              className={f.input}
+              value={newCalName}
+              placeholder="New calendar name"
+              autoFocus
+              onChange={(e) => setNewCalName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && createCalendar()}
+            />
+            <button
+              type="button"
+              className={`${f.btn} ${f.btnPrimary}`}
+              onClick={createCalendar}
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              className={f.btn}
+              onClick={() => {
+                setAddingCal(false);
+                setNewCalName("");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className={f.linkBtn}
+            onClick={() => setAddingCal(true)}
+          >
+            ＋ New calendar
+          </button>
+        )}
+      </div>
 
       <div className={f.field}>
         <label className={f.label} htmlFor="ev-date">
@@ -180,21 +237,29 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
 
       <div className={f.row}>
         <div className={f.field}>
-          <span className={f.label}>Start</span>
-          <Select
-            ariaLabel="Start time"
-            value={String(start)}
-            options={TIME_OPTIONS.map((h) => ({ value: String(h), label: formatTime(h) }))}
-            onChange={(v) => setStart(Number(v))}
+          <label className={f.label} htmlFor="ev-start">
+            Start
+          </label>
+          <input
+            id="ev-start"
+            className={f.dateInput}
+            type="time"
+            step={300}
+            value={toHM(start)}
+            onChange={(e) => setStart(fromHM(e.target.value))}
           />
         </div>
         <div className={f.field}>
-          <span className={f.label}>End</span>
-          <Select
-            ariaLabel="End time"
-            value={String(end)}
-            options={TIME_OPTIONS.map((h) => ({ value: String(h), label: formatTime(h) }))}
-            onChange={(v) => setEnd(Number(v))}
+          <label className={f.label} htmlFor="ev-end">
+            End
+          </label>
+          <input
+            id="ev-end"
+            className={f.dateInput}
+            type="time"
+            step={300}
+            value={toHM(end)}
+            onChange={(e) => setEnd(fromHM(e.target.value))}
           />
         </div>
       </div>
@@ -218,17 +283,34 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
       </div>
 
       {kind === "block" && (
-        <label className={f.checkbox}>
-          <input
-            type="checkbox"
-            checked={locked}
-            onChange={(e) => setLocked(e.target.checked)}
-          />
-          Locked (pin this block; scheduling flows around it)
-        </label>
+        <>
+          <label className={f.checkbox}>
+            <input
+              type="checkbox"
+              checked={locked}
+              onChange={(e) => setLocked(e.target.checked)}
+            />
+            Locked (pin this block; scheduling flows around it)
+          </label>
+
+          {tasks.length > 0 && (
+            <div className={f.field}>
+              <span className={f.label}>Dedicate to task (optional)</span>
+              <Select
+                ariaLabel="Dedicate to task"
+                value={taskId}
+                options={[
+                  { value: "", label: "— None —" },
+                  ...tasks.map((t) => ({ value: t.id, label: t.title })),
+                ]}
+                onChange={setTaskId}
+              />
+            </div>
+          )}
+        </>
       )}
 
-      {/* ---- Optional: plan work sessions with AI (Features B & C) ---- */}
+      {/* ---- Optional: plan work sessions with Cadence ---- */}
       <div className={f.field}>
         {!aiOpen ? (
           <button
@@ -347,9 +429,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
                       <button
                         className={s.fileRemove}
                         onClick={() =>
-                          setPending((prev) =>
-                            prev.filter((_, j) => j !== i),
-                          )
+                          setPending((prev) => prev.filter((_, j) => j !== i))
                         }
                         aria-label={`Remove ${r.title}`}
                       >

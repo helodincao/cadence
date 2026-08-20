@@ -12,6 +12,7 @@ import {
   HOUR_HEIGHT,
   hourToOffset,
   isSameDay,
+  snap5,
   START_HOUR,
   toISO,
   weekdayIndex,
@@ -56,7 +57,7 @@ interface DragSession {
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
-const snapHalf = (h: number) => Math.round(h * 2) / 2;
+const MIN_DUR = 1 / 12; // 5 minutes
 
 interface Lane {
   lane: number;
@@ -174,12 +175,12 @@ export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
         const col = clamp(rawCol, 0, cols.length - 1);
         const dropDate = toISO(cols[col]);
         const rawStart = START_HOUR + (floatTop - d.bodyTop) / HOUR_HEIGHT;
-        const dropStart = clamp(snapHalf(rawStart), START_HOUR, END_HOUR - dur);
+        const dropStart = clamp(snap5(rawStart), START_HOUR, END_HOUR - dur);
         next = { id: d.id, date: dropDate, start: dropStart, end: dropStart + dur };
         floatingPos.current = { left: floatLeft, top: floatTop };
       } else {
         const rawEnd = START_HOUR + (e.clientY - d.bodyTop) / HOUR_HEIGHT;
-        const end = clamp(rawEnd, d.origStart + 0.5, END_HOUR);
+        const end = clamp(rawEnd, d.origStart + MIN_DUR, END_HOUR);
         next = { id: d.id, date: d.origDate, start: d.origStart, end };
       }
       previewRef.current = next;
@@ -206,7 +207,7 @@ export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
       const patch: Partial<CalEvent> =
         d.mode === "move"
           ? { date: p.date, start: p.start, end: p.end }
-          : { end: clamp(snapHalf(p.end), d.origStart + 0.5, END_HOUR) };
+          : { end: clamp(snap5(p.end), d.origStart + MIN_DUR, END_HOUR) };
       if (ev.kind === "block" && ev.taskId) patch.locked = true;
       updateEvent(d.id, patch);
     }
@@ -231,7 +232,7 @@ export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
     if (e.target !== e.currentTarget) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const raw = START_HOUR + (e.clientY - rect.top) / HOUR_HEIGHT;
-    const start = clamp(snapHalf(raw), START_HOUR, END_HOUR - 0.5);
+    const start = clamp(snap5(raw), START_HOUR, END_HOUR - MIN_DUR);
     onCreateEvent(toISO(date), start, Math.min(start + 1, END_HOUR));
   }
 

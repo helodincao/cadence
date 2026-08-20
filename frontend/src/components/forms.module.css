@@ -173,3 +173,32 @@
   border-color: var(--urgent);
   color: var(--urgent);
 }
+
+/* "No calendars available" note + inline "add calendar" within the picker. */
+.emptyNote {
+  font-size: 13px;
+  color: var(--ink-3);
+  padding: 9px 10px;
+  border: 1px dashed var(--line-soft);
+  border-radius: 3px;
+}
+.linkBtn {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--cyan);
+}
+.linkBtn:hover {
+  text-shadow: var(--text-glow);
+}
+.inlineAdd {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.inlineAdd input {
+  flex: 1;
+  min-width: 0;
+}
