@@ -1,20 +1,14 @@
+/* hour : minute  [AM/PM] — each dropdown fills its own grid column so nothing
+   collapses. Full width, so it needs its own row (not a half-width column). */
 .picker {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr minmax(72px, 0.8fr);
   align-items: center;
-  gap: 6px;
-}
-/* Each Select renders a .wrap div — let hour/minute grow, keep AM/PM tighter. */
-.picker > div {
-  flex: 1;
-  min-width: 0;
-}
-.picker > div:last-child {
-  flex: 0 0 auto;
-  min-width: 66px;
+  gap: 8px;
 }
 .colon {
-  flex: none;
   color: var(--ink-2);
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 16px;
+  text-align: center;
 }

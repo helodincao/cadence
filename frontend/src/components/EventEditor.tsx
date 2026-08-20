@@ -236,15 +236,13 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
         />
       </div>
 
-      <div className={f.row}>
-        <div className={f.field}>
-          <span className={f.label}>Start</span>
-          <TimePicker ariaLabel="Start" value={start} onChange={setStart} />
-        </div>
-        <div className={f.field}>
-          <span className={f.label}>End</span>
-          <TimePicker ariaLabel="End" value={end} onChange={setEnd} />
-        </div>
+      <div className={f.field}>
+        <span className={f.label}>Start</span>
+        <TimePicker ariaLabel="Start" value={start} onChange={setStart} />
+      </div>
+      <div className={f.field}>
+        <span className={f.label}>End</span>
+        <TimePicker ariaLabel="End" value={end} onChange={setEnd} />
       </div>
 
       <div className={f.field}>
