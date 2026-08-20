@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import type { CalEvent, EventKind } from "../types";
 import { useApp } from "../store/AppStore";
-import { END_HOUR, formatShortDate, fromHM, snap5, toHM } from "../lib/time";
+import { END_HOUR, formatShortDate, snap5 } from "../lib/time";
 import { uid } from "../lib/id";
 import { DEFAULT_CALENDAR_COLOR } from "../lib/palette";
 import { importDetails, type ImportedTask } from "../lib/api";
 import Modal from "./Modal";
 import Select from "./Select";
+import TimePicker from "./TimePicker";
 import f from "./forms.module.css";
 import s from "./EventImport.module.css";
 
@@ -237,30 +238,12 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
 
       <div className={f.row}>
         <div className={f.field}>
-          <label className={f.label} htmlFor="ev-start">
-            Start
-          </label>
-          <input
-            id="ev-start"
-            className={f.dateInput}
-            type="time"
-            step={300}
-            value={toHM(start)}
-            onChange={(e) => setStart(fromHM(e.target.value))}
-          />
+          <span className={f.label}>Start</span>
+          <TimePicker ariaLabel="Start" value={start} onChange={setStart} />
         </div>
         <div className={f.field}>
-          <label className={f.label} htmlFor="ev-end">
-            End
-          </label>
-          <input
-            id="ev-end"
-            className={f.dateInput}
-            type="time"
-            step={300}
-            value={toHM(end)}
-            onChange={(e) => setEnd(fromHM(e.target.value))}
-          />
+          <span className={f.label}>End</span>
+          <TimePicker ariaLabel="End" value={end} onChange={setEnd} />
         </div>
       </div>
 

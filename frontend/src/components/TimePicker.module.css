@@ -1,0 +1,20 @@
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Each Select renders a .wrap div — let hour/minute grow, keep AM/PM tighter. */
+.picker > div {
+  flex: 1;
+  min-width: 0;
+}
+.picker > div:last-child {
+  flex: 0 0 auto;
+  min-width: 66px;
+}
+.colon {
+  flex: none;
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
