@@ -67,6 +67,7 @@ class ImTask(BaseModel):
     due_date: Optional[str] = None  # ISO YYYY-MM-DD
     effort_hours: float
     priority: Priority
+    group: str = "Tasks"  # inferred category, e.g. "Exams", "Assignments"
 
 
 class ImEvent(BaseModel):
@@ -74,6 +75,7 @@ class ImEvent(BaseModel):
     date: str  # ISO YYYY-MM-DD
     start: float  # decimal 24h hour
     end: float
+    group: str = "Events"  # inferred category, e.g. "Lectures", "Office Hours"
 
 
 class ImportResult(BaseModel):
@@ -83,7 +85,7 @@ class ImportResult(BaseModel):
 
 
 SYSTEM_PROMPT = """You turn a user's request plus any attached files (course
-syllabi, project specs) into a concrete study/work plan.
+syllabi, project specs, schedules) into a concrete study/work plan.
 
 Return two lists:
 - tasks: work the user must do that needs time allocated — assignments,
@@ -91,22 +93,32 @@ Return two lists:
   YYYY-MM-DD, or null if none is given); effort_hours (your estimate of TOTAL
   hours of work, judged from the complexity described or implied — a number);
   priority ("high" for exams/projects/finals, "med" for assignments/labs/quizzes,
-  "low" for readings and small tasks).
+  "low" for readings and small tasks); group (see below).
 - events: things that happen at a fixed time — exams, quizzes, presentations,
-  scheduled class sessions. Each has: title; date (ISO); start and end as
-  decimal 24-hour hours (e.g. 14.5 = 2:30 PM). If no time is given, use 9.0–10.0.
+  lectures/class sessions, office hours, meetings. Each has: title; date (ISO);
+  start and end as decimal 24-hour hours (e.g. 14.5 = 2:30 PM; if no time is
+  given, use 9.0–10.0); group (see below).
+
+group: a short category label that buckets similar items together, so the user
+can file each bucket into its own calendar. Use the SAME EXACT label for every
+item of a kind — e.g. all midterms/finals/exams -> "Exams"; all office hours ->
+"Office Hours"; all lectures/class sessions -> "Lectures"; assignments/problem
+sets/homework -> "Assignments"; readings -> "Readings"; a big project's pieces ->
+its project name. Infer sensible, general categories from the content — this is
+NOT limited to school (it could be "Meetings", "Shifts", "Deadlines", etc.).
 
 Also return note: one short sentence summarizing what you planned.
 
 Follow the user's instruction:
 - If they describe ONE project/assignment with a due date, create a single task
   and estimate its effort_hours from the complexity.
-- If they attach a syllabus and ask to schedule everything, extract every graded
-  assignment as a task (with its due date and an effort estimate), and every
-  exam/quiz/presentation as an event on its date (add a separate exam-prep task
-  when studying is implied).
+- If they attach a syllabus/schedule and ask to schedule everything, extract
+  every graded assignment as a task (with its due date and effort estimate),
+  every exam/quiz/presentation as an event, and every recurring session (lecture,
+  office hours) as an event; add a separate exam-prep task when studying is
+  implied.
 
-Only include real, dated work. Ignore policies, office hours, and boilerplate."""
+Only include real, dated/timed items. Ignore prose policies and boilerplate."""
 
 
 def _snap(hours: float) -> float:
@@ -121,17 +133,28 @@ def _tasks_to_api(tasks: List[ImTask]) -> List[dict]:
             "dueDateText": t.due_date,
             "effortHours": _snap(t.effort_hours),
             "priority": t.priority,
+            "group": (t.group or "Tasks").strip() or "Tasks",
         }
         for t in tasks
     ]
 
 
+def _snap5(hour: float) -> float:
+    return round(hour * 12) / 12  # nearest 5 minutes
+
+
 def _events_to_api(events: List[ImEvent]) -> List[dict]:
     out = []
     for e in events:
-        start = max(8.0, min(20.5, round(e.start * 2) / 2))
-        end = max(start + 0.5, min(21.0, round(e.end * 2) / 2))
-        out.append({"title": e.title.strip() or "Untitled", "date": e.date, "start": start, "end": end})
+        start = max(8.0, min(20.0 + 55 / 60, _snap5(e.start)))
+        end = max(start + 1 / 12, min(21.0, _snap5(e.end)))
+        out.append({
+            "title": e.title.strip() or "Untitled",
+            "date": e.date,
+            "start": start,
+            "end": end,
+            "group": (e.group or "Events").strip() or "Events",
+        })
     return out
 
 
@@ -255,6 +278,25 @@ _KEYWORD_RE = {
 }
 _EFFORT = {"high": 6.0, "med": 3.0, "low": 1.5}
 
+# Keyword → group category (checked in order), for the no-key heuristic path.
+_GROUPS = (
+    ("Exams", ("exam", "midterm", "final", "test", "quiz")),
+    ("Projects", ("project", "presentation")),
+    ("Assignments", ("assignment", "homework", "problem set", "pset", "hw", "lab", "paper", "essay")),
+    ("Readings", ("reading", "read", "chapter", "watch")),
+)
+_GROUP_RE = [
+    (name, re.compile(r"\b(?:" + "|".join(re.escape(k) for k in words) + r")\b", re.I))
+    for name, words in _GROUPS
+]
+
+
+def _group_for(line: str) -> str:
+    for name, rx in _GROUP_RE:
+        if rx.search(line):
+            return name
+    return "Tasks"
+
 
 def _heuristic(text: str, deadline: Optional[str] = None) -> List[ImTask]:
     tasks: List[ImTask] = []
@@ -270,13 +312,16 @@ def _heuristic(text: str, deadline: Optional[str] = None) -> List[ImTask]:
         if priority is None:
             continue
         title = line if len(line) <= 60 else line[:57] + "…"
-        tasks.append(ImTask(title=title, due_date=deadline, effort_hours=_EFFORT[priority], priority=priority))
+        tasks.append(ImTask(
+            title=title, due_date=deadline, effort_hours=_EFFORT[priority],
+            priority=priority, group=_group_for(line),
+        ))
     # If a deadline was given but nothing matched, still make one prep task so
     # the "plan work sessions for this event" flow always produces something.
     if deadline and not tasks:
         snippet = " ".join(text.split())[:57]
         title = ("Prep: " + snippet) if snippet else "Prep work"
-        tasks.append(ImTask(title=title, due_date=deadline, effort_hours=_EFFORT["med"], priority="med"))
+        tasks.append(ImTask(title=title, due_date=deadline, effort_hours=_EFFORT["med"], priority="med", group="Tasks"))
     return tasks
 
 

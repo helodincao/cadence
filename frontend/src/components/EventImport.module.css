@@ -222,3 +222,146 @@
   line-height: 1.45;
   margin: 0 0 12px;
 }
+
+/* ---- Drag-over state for the file dropzone ---- */
+.dropzoneActive {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--accent-soft);
+}
+
+/* ---- Grouped, editable review (step 2) ---- */
+.selectAll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 12px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.selectAll input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--cyan);
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.group {
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+}
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+.groupHead input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--cyan);
+  flex: none;
+}
+.groupName {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 700;
+}
+.groupCount {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--cyan);
+  background: var(--accent-soft);
+  border-radius: 20px;
+  padding: 1px 7px;
+}
+.groupArrow {
+  margin-left: auto;
+  color: var(--ink-3);
+}
+.groupAssign {
+  flex: 0 0 170px;
+  min-width: 140px;
+}
+
+.rowEdit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rowEdit:last-child {
+  border-bottom: none;
+}
+.rowCheck {
+  margin-top: 8px;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--cyan);
+  flex: none;
+}
+.rowBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.titleInput {
+  width: 100%;
+  background: var(--field-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  padding: 6px 8px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.titleInput:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.fieldsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.priCell {
+  flex: 0 0 84px;
+}
+.calCell {
+  flex: 1;
+  min-width: 130px;
+}
+.numInput,
+.smallDate,
+.smallTime {
+  background: var(--field-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  padding: 6px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.numInput {
+  width: 52px;
+}
+.unit {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

@@ -95,6 +95,7 @@ export interface ImportedTask {
   dueDateText: string | null;
   effortHours: number;
   priority: Priority;
+  group: string; // inferred category, e.g. "Exams", "Assignments"
 }
 
 export interface ImportedEvent {
@@ -102,6 +103,7 @@ export interface ImportedEvent {
   date: string; // ISO
   start: number; // decimal 24h hour
   end: number;
+  group: string; // inferred category, e.g. "Lectures", "Office Hours"
 }
 
 export interface ImportResult {

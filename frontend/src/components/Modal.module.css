@@ -2,8 +2,8 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
+  display: flex;
+  overflow-y: auto; /* tall modals scroll here (keeps dropdowns un-clipped) */
   padding: 20px;
   background: rgba(0, 2, 6, 0.72);
   backdrop-filter: blur(3px);
@@ -12,6 +12,7 @@
 
 .panel {
   position: relative;
+  margin: auto; /* centers when it fits, top-aligns + scrolls when tall */
   width: 100%;
   max-width: 380px;
   background: var(--surface-solid);
