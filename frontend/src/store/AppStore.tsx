@@ -38,6 +38,7 @@ type Action =
   | { type: "addEvent"; event: CalEvent }
   | { type: "updateEvent"; id: string; patch: Partial<CalEvent> }
   | { type: "deleteEvent"; id: string }
+  | { type: "deleteEvents"; ids: string[] }
   | { type: "addTask"; task: Task }
   | { type: "updateTask"; id: string; patch: Partial<Task> }
   | { type: "deleteTask"; id: string }
@@ -133,6 +134,14 @@ function reducer(state: AppState, action: Action): AppState {
         events: state.events.filter((e) => e.id !== action.id),
       };
 
+    case "deleteEvents": {
+      const drop = new Set(action.ids);
+      return {
+        ...state,
+        events: state.events.filter((e) => !drop.has(e.id)),
+      };
+    }
+
     case "addTask":
       return { ...state, tasks: [...state.tasks, action.task] };
 
@@ -187,6 +196,7 @@ interface AppContextValue extends AppState {
   addEvent: (event: CalEvent) => void;
   updateEvent: (id: string, patch: Partial<CalEvent>) => void;
   deleteEvent: (id: string) => void;
+  deleteEvents: (ids: string[]) => void;
   addTask: (task: Task) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -250,6 +260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addEvent: (event) => dispatch({ type: "addEvent", event }),
     updateEvent: (id, patch) => dispatch({ type: "updateEvent", id, patch }),
     deleteEvent: (id) => dispatch({ type: "deleteEvent", id }),
+    deleteEvents: (ids) => dispatch({ type: "deleteEvents", ids }),
     addTask: (task) => dispatch({ type: "addTask", task }),
     updateTask: (id, patch) => dispatch({ type: "updateTask", id, patch }),
     deleteTask: (id) => dispatch({ type: "deleteTask", id }),

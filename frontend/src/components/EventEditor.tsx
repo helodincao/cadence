@@ -21,10 +21,12 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   const {
     calendars,
     tasks,
+    events,
     addCalendar,
     addEvent,
     updateEvent,
     deleteEvent,
+    deleteEvents,
     addTask,
     planWeek,
   } = useApp();
@@ -43,6 +45,19 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   // Inline "add a calendar" from within the picker.
   const [addingCal, setAddingCal] = useState(false);
   const [newCalName, setNewCalName] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Other events that are "the same" as this one (a repeated/recurring series):
+  // same title, time, and calendar. Used to offer "delete all like this".
+  const norm = (t: string) => t.trim().toLowerCase();
+  const sameSeries = events.filter(
+    (e) =>
+      norm(e.title) === norm(event.title) &&
+      e.start === event.start &&
+      e.end === event.end &&
+      e.calendarId === event.calendarId,
+  );
+  const dupCount = sameSeries.length;
 
   // --- Optional Cadence panel: plan work sessions leading up to this event ---
   const aiFileRef = useRef<HTMLInputElement>(null);
@@ -143,7 +158,22 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   }
 
   function remove() {
+    // If this event is one of several identical ones, ask which to delete.
+    if (dupCount > 1) {
+      setConfirmDelete(true);
+      return;
+    }
     deleteEvent(event.id);
+    onClose();
+  }
+
+  function deleteJustThis() {
+    deleteEvent(event.id);
+    onClose();
+  }
+
+  function deleteAllMatching() {
+    deleteEvents(sameSeries.map((e) => e.id));
     onClose();
   }
 
@@ -425,20 +455,38 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
         )}
       </div>
 
-      <div className={f.actions}>
-        {!isNew && (
-          <button className={`${f.btn} ${f.btnDanger}`} onClick={remove}>
-            Delete
+      {confirmDelete ? (
+        <div className={f.actions}>
+          <span className={f.confirmText}>
+            {dupCount} events named “{event.title.trim() || "Untitled"}”.
+          </span>
+          <span className={f.spacer} />
+          <button className={f.btn} onClick={() => setConfirmDelete(false)}>
+            Cancel
           </button>
-        )}
-        <span className={f.spacer} />
-        <button className={f.btn} onClick={onClose}>
-          Cancel
-        </button>
-        <button className={`${f.btn} ${f.btnPrimary}`} onClick={save}>
-          {primaryLabel}
-        </button>
-      </div>
+          <button className={`${f.btn} ${f.btnDanger}`} onClick={deleteJustThis}>
+            Just this one
+          </button>
+          <button className={`${f.btn} ${f.btnDanger}`} onClick={deleteAllMatching}>
+            All {dupCount}
+          </button>
+        </div>
+      ) : (
+        <div className={f.actions}>
+          {!isNew && (
+            <button className={`${f.btn} ${f.btnDanger}`} onClick={remove}>
+              Delete
+            </button>
+          )}
+          <span className={f.spacer} />
+          <button className={f.btn} onClick={onClose}>
+            Cancel
+          </button>
+          <button className={`${f.btn} ${f.btnPrimary}`} onClick={save}>
+            {primaryLabel}
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }

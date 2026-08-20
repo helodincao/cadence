@@ -202,3 +202,11 @@
   flex: 1;
   min-width: 0;
 }
+
+/* Inline confirm text (e.g. the delete-duplicates prompt). */
+.confirmText {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  align-self: center;
+  line-height: 1.35;
+}
