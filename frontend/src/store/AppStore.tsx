@@ -44,6 +44,7 @@ type Action =
   | { type: "deleteTask"; id: string }
   | { type: "updateSettings"; patch: Partial<Settings> }
   | { type: "planWeek" }
+  | { type: "planTask"; id: string }
   | { type: "hydrate"; state: AppState }
   | { type: "reset" };
 
@@ -180,6 +181,23 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, events: [...keep, ...generated] };
     }
 
+    case "planTask": {
+      // Allot time for a SINGLE task (opt-in from the task inbox): drop only
+      // this task's old auto blocks, keep everything else busy, and schedule it.
+      const task = state.tasks.find((t) => t.id === action.id);
+      if (!task) return state;
+      const keep = state.events.filter(
+        (e) => !(e.kind === "block" && e.taskId === action.id && !e.locked),
+      );
+      const generated = schedule(
+        [task],
+        keep,
+        configFromSettings(state.settings),
+        toISO(startOfDay(new Date())),
+      );
+      return { ...state, events: [...keep, ...generated] };
+    }
+
     case "hydrate":
       return action.state;
 
@@ -202,6 +220,7 @@ interface AppContextValue extends AppState {
   deleteTask: (id: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   planWeek: () => void;
+  planTask: (id: string) => void;
   resetAll: () => void;
 }
 
@@ -266,6 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTask: (id) => dispatch({ type: "deleteTask", id }),
     updateSettings: (patch) => dispatch({ type: "updateSettings", patch }),
     planWeek: () => dispatch({ type: "planWeek" }),
+    planTask: (id) => dispatch({ type: "planTask", id }),
     resetAll: () => dispatch({ type: "reset" }),
   };
 

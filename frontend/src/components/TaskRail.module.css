@@ -199,3 +199,30 @@
     display: none;
   }
 }
+
+/* Per-task "schedule time" opt-in row (suggestion → allot time). */
+.scheduleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scheduleRow .warn {
+  flex: none;
+}
+.scheduleBtn {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 3px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scheduleBtn:hover {
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan-soft);
+}

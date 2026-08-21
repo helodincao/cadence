@@ -20,7 +20,7 @@ export default function TaskRail({
   onNewTask,
   onEditTask,
 }: Props) {
-  const { tasks, events, calendars, updateTask } = useApp();
+  const { tasks, events, calendars, updateTask, planTask } = useApp();
 
   const colorOf = (id: string) =>
     calendars.find((c) => c.id === id)?.color ?? "var(--ink-3)";
@@ -112,9 +112,28 @@ export default function TaskRail({
                 </span>
               </div>
 
-              {shortfall > 0 && (
-                <div className={styles.warn}>
-                  {shortfall}h unscheduled — try Plan Week
+              {shortfall > 0 && !task.done && (
+                <div className={styles.scheduleRow}>
+                  <span className={styles.warn}>{shortfall}h to schedule</span>
+                  <span
+                    className={styles.scheduleBtn}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Schedule time for ${task.title}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      planTask(task.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        planTask(task.id);
+                      }
+                    }}
+                  >
+                    ✦ Schedule time
+                  </span>
                 </div>
               )}
 
