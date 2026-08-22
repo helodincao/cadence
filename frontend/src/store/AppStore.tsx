@@ -36,6 +36,7 @@ type Action =
   | { type: "deleteCalendar"; id: string }
   | { type: "toggleCalendar"; id: string }
   | { type: "addEvent"; event: CalEvent }
+  | { type: "addEvents"; events: CalEvent[] }
   | { type: "updateEvent"; id: string; patch: Partial<CalEvent> }
   | { type: "deleteEvent"; id: string }
   | { type: "deleteEvents"; ids: string[] }
@@ -120,6 +121,9 @@ function reducer(state: AppState, action: Action): AppState {
 
     case "addEvent":
       return { ...state, events: [...state.events, action.event] };
+
+    case "addEvents":
+      return { ...state, events: [...state.events, ...action.events] };
 
     case "updateEvent":
       return {
@@ -212,6 +216,7 @@ interface AppContextValue extends AppState {
   deleteCalendar: (id: string) => void;
   toggleCalendar: (id: string) => void;
   addEvent: (event: CalEvent) => void;
+  addEvents: (events: CalEvent[]) => void;
   updateEvent: (id: string, patch: Partial<CalEvent>) => void;
   deleteEvent: (id: string) => void;
   deleteEvents: (ids: string[]) => void;
@@ -277,6 +282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteCalendar: (id) => dispatch({ type: "deleteCalendar", id }),
     toggleCalendar: (id) => dispatch({ type: "toggleCalendar", id }),
     addEvent: (event) => dispatch({ type: "addEvent", event }),
+    addEvents: (events) => dispatch({ type: "addEvents", events }),
     updateEvent: (id, patch) => dispatch({ type: "updateEvent", id, patch }),
     deleteEvent: (id) => dispatch({ type: "deleteEvent", id }),
     deleteEvents: (ids) => dispatch({ type: "deleteEvents", ids }),

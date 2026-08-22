@@ -1,7 +1,15 @@
 import { useRef, useState } from "react";
 import type { CalEvent, EventKind } from "../types";
 import { useApp } from "../store/AppStore";
-import { END_HOUR, formatShortDate, snap5 } from "../lib/time";
+import {
+  addDays,
+  END_HOUR,
+  formatShortDate,
+  fromISO,
+  snap5,
+  toISO,
+  weekdayIndex,
+} from "../lib/time";
 import { uid } from "../lib/id";
 import { DEFAULT_CALENDAR_COLOR } from "../lib/palette";
 import { importDetails, type ImportedTask } from "../lib/api";
@@ -24,6 +32,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
     events,
     addCalendar,
     addEvent,
+    addEvents,
     updateEvent,
     deleteEvent,
     deleteEvents,
@@ -46,6 +55,32 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   const [addingCal, setAddingCal] = useState(false);
   const [newCalName, setNewCalName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Recurrence (new events only): repeat on selected weekdays until a date, or
+  // indefinitely. Occurrences are materialized as individual events on save.
+  const [repeat, setRepeat] = useState(false);
+  const [repeatDays, setRepeatDays] = useState<boolean[]>(() => {
+    const arr = Array<boolean>(7).fill(false);
+    arr[weekdayIndex(fromISO(event.date))] = true; // default: the event's weekday
+    return arr;
+  });
+  const [repeatEnds, setRepeatEnds] = useState<"never" | "on">("never");
+  const [repeatUntil, setRepeatUntil] = useState("");
+
+  function occurrenceDates(): string[] {
+    const out: string[] = [];
+    const endISO =
+      repeatEnds === "on" && repeatUntil ? repeatUntil : null;
+    let cur = fromISO(date);
+    const end = endISO ? fromISO(endISO) : addDays(cur, 365); // ~1yr for "never"
+    let guard = 0;
+    while (cur <= end && guard < 400) {
+      guard++;
+      if (repeatDays[weekdayIndex(cur)]) out.push(toISO(cur));
+      cur = addDays(cur, 1);
+    }
+    return out.length ? out : [date];
+  }
 
   // Other events that are "the same" as this one (a repeated/recurring series):
   // same title, time, and calendar. Used to offer "delete all like this".
@@ -138,8 +173,18 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
       locked: kind === "block" ? locked || !!linkedTask : undefined,
       taskId: linkedTask,
     };
-    if (isNew) addEvent(next);
-    else updateEvent(event.id, next);
+    if (isNew) {
+      if (repeat && repeatDays.some(Boolean)) {
+        // Materialize one event per occurrence date (same time/calendar).
+        addEvents(
+          occurrenceDates().map((d) => ({ ...next, id: uid(), date: d })),
+        );
+      } else {
+        addEvent(next);
+      }
+    } else {
+      updateEvent(event.id, next);
+    }
 
     // Commit any Cadence-planned work sessions as tasks due on/before this
     // event, then let the scheduler place blocks for them.
@@ -319,6 +364,68 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
             </div>
           )}
         </>
+      )}
+
+      {isNew && (
+        <div className={f.field}>
+          <label className={f.checkbox}>
+            <input
+              type="checkbox"
+              checked={repeat}
+              onChange={(e) => setRepeat(e.target.checked)}
+            />
+            Repeat on days of the week
+          </label>
+          {repeat && (
+            <div className={f.repeatBox}>
+              <div className={f.weekdays}>
+                {["M", "T", "W", "T", "F", "S", "S"].map((lbl, i) => (
+                  <button
+                    type="button"
+                    key={i}
+                    className={`${f.weekdayBtn} ${repeatDays[i] ? f.weekdayOn : ""}`}
+                    aria-pressed={repeatDays[i]}
+                    aria-label={
+                      ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][i]
+                    }
+                    onClick={() =>
+                      setRepeatDays((prev) =>
+                        prev.map((v, j) => (j === i ? !v : v)),
+                      )
+                    }
+                  >
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+              <span className={f.label}>Ends</span>
+              <div className={f.segment}>
+                <button
+                  className={repeatEnds === "never" ? f.on : ""}
+                  onClick={() => setRepeatEnds("never")}
+                >
+                  Never
+                </button>
+                <button
+                  className={repeatEnds === "on" ? f.on : ""}
+                  onClick={() => setRepeatEnds("on")}
+                >
+                  On date
+                </button>
+              </div>
+              {repeatEnds === "on" && (
+                <input
+                  type="date"
+                  className={f.dateInput}
+                  value={repeatUntil}
+                  min={date}
+                  onChange={(e) => setRepeatUntil(e.target.value)}
+                  style={{ marginTop: 8 }}
+                />
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ---- Optional: plan work sessions with Cadence ---- */}
