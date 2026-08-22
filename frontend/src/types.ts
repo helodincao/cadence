@@ -29,6 +29,8 @@ export interface CalEvent {
   locked?: boolean;
   /** Set on scheduler-generated work blocks; links back to the Task. */
   taskId?: string;
+  /** Shared by all occurrences of a manually-created recurring event. */
+  seriesId?: string;
 }
 
 /** User scheduling preferences (the "questionnaire"). These are turned into a

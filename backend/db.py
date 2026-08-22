@@ -58,6 +58,7 @@ class Event(Base):
     kind: Mapped[str] = mapped_column(String)  # "fixed" | "block"
     locked: Mapped[bool] = mapped_column(Boolean, default=False)
     task_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    series_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 
 class Task(Base):
@@ -86,19 +87,19 @@ class SettingsRow(Base):
     break_end: Mapped[float] = mapped_column(Float)
 
 
-def _migrate_add_user_id() -> None:
-    """Add a `user_id` column to pre-auth data tables that predate it."""
+def _migrate_add_column(table: str, column: str) -> None:
+    """Add a missing nullable VARCHAR column to an existing table (SQLite)."""
     insp = inspect(engine)
-    existing = set(insp.get_table_names())
-    with engine.begin() as conn:
-        for tbl in ("calendars", "events", "tasks", "settings"):
-            if tbl not in existing:
-                continue
-            cols = {c["name"] for c in insp.get_columns(tbl)}
-            if "user_id" not in cols:
-                conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN user_id VARCHAR"))
+    if table not in set(insp.get_table_names()):
+        return
+    cols = {c["name"] for c in insp.get_columns(table)}
+    if column not in cols:
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} VARCHAR"))
 
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
-    _migrate_add_user_id()
+    for tbl in ("calendars", "events", "tasks", "settings"):
+        _migrate_add_column(tbl, "user_id")
+    _migrate_add_column("events", "series_id")

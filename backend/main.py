@@ -203,6 +203,7 @@ class EventM(BaseModel):
     kind: Literal["fixed", "block"]
     locked: Optional[bool] = None
     taskId: Optional[str] = None
+    seriesId: Optional[str] = None
 
 
 class TaskM(BaseModel):
@@ -256,7 +257,7 @@ def get_state(user: User = Depends(current_user)):
             EventM(
                 id=e.id, calendarId=e.calendar_id, title=e.title, date=e.date,
                 start=e.start, end=e.end, kind=e.kind,
-                locked=e.locked or None, taskId=e.task_id,
+                locked=e.locked or None, taskId=e.task_id, seriesId=e.series_id,
             )
             for e in s.query(EvRow).filter(EvRow.user_id == user.id).all()
         ]
@@ -296,7 +297,7 @@ def put_state(state: StateM, user: User = Depends(current_user)):
             s.add(EvRow(
                 id=e.id, user_id=user.id, calendar_id=e.calendarId, title=e.title, date=e.date,
                 start=e.start, end=e.end, kind=e.kind,
-                locked=bool(e.locked), task_id=e.taskId,
+                locked=bool(e.locked), task_id=e.taskId, series_id=e.seriesId,
             ))
         for t in state.tasks:
             s.add(TaskRow(

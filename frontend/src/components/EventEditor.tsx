@@ -40,6 +40,15 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
     planWeek,
   } = useApp();
 
+  // All occurrences of this event's recurring series (if any).
+  const seriesMembers = event.seriesId
+    ? events.filter((e) => e.seriesId === event.seriesId)
+    : [];
+  const isSeries = seriesMembers.length > 1;
+  const seriesDates = seriesMembers.map((e) => e.date).sort();
+  const seriesStart = isSeries ? seriesDates[0] : event.date;
+  const seriesEnd = isSeries ? seriesDates[seriesDates.length - 1] : event.date;
+
   const [title, setTitle] = useState(event.title);
   const [calendarId, setCalendarId] = useState(
     event.calendarId || calendars[0]?.id || "",
@@ -55,23 +64,31 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
   const [addingCal, setAddingCal] = useState(false);
   const [newCalName, setNewCalName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // When editing a recurring series, ask whether to apply to this event or all.
+  const [editScope, setEditScope] = useState<"ask" | null>(null);
 
-  // Recurrence (new events only): repeat on selected weekdays until a date, or
-  // indefinitely. Occurrences are materialized as individual events on save.
-  const [repeat, setRepeat] = useState(false);
+  // Recurrence: repeat on selected weekdays until a date, or indefinitely.
+  // Occurrences are materialized as individual events sharing a seriesId.
+  // For an existing series, the controls are pre-filled from its occurrences.
+  const [repeat, setRepeat] = useState(isSeries);
   const [repeatDays, setRepeatDays] = useState<boolean[]>(() => {
     const arr = Array<boolean>(7).fill(false);
-    arr[weekdayIndex(fromISO(event.date))] = true; // default: the event's weekday
+    if (isSeries) {
+      for (const m of seriesMembers) arr[weekdayIndex(fromISO(m.date))] = true;
+    } else {
+      arr[weekdayIndex(fromISO(event.date))] = true; // default: the event's weekday
+    }
     return arr;
   });
-  const [repeatEnds, setRepeatEnds] = useState<"never" | "on">("never");
-  const [repeatUntil, setRepeatUntil] = useState("");
+  const [repeatEnds, setRepeatEnds] = useState<"never" | "on">(
+    isSeries ? "on" : "never",
+  );
+  const [repeatUntil, setRepeatUntil] = useState(isSeries ? seriesEnd : "");
 
-  function occurrenceDates(): string[] {
+  function occurrenceDates(startISO: string): string[] {
     const out: string[] = [];
-    const endISO =
-      repeatEnds === "on" && repeatUntil ? repeatUntil : null;
-    let cur = fromISO(date);
+    const endISO = repeatEnds === "on" && repeatUntil ? repeatUntil : null;
+    let cur = fromISO(startISO);
     const end = endISO ? fromISO(endISO) : addDays(cur, 365); // ~1yr for "never"
     let guard = 0;
     while (cur <= end && guard < 400) {
@@ -79,7 +96,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
       if (repeatDays[weekdayIndex(cur)]) out.push(toISO(cur));
       cur = addDays(cur, 1);
     }
-    return out.length ? out : [date];
+    return out.length ? out : [startISO];
   }
 
   // Other events that are "the same" as this one (a repeated/recurring series):
@@ -143,12 +160,12 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
     setAddingCal(false);
   }
 
-  function save() {
-    // Keep end after start by at least one 5-min slot.
-    const safeEnd = end > start ? end : Math.min(start + 1 / 12, END_HOUR);
+  const repeating = repeat && repeatDays.some(Boolean);
 
-    // No calendar chosen (e.g. a first-ever one-off event) — quietly create a
-    // default one so the event has a home, without making the user do it first.
+  /** The shared fields (everything but id/date/seriesId) for the current form. */
+  function buildEvent() {
+    const safeEnd = end > start ? end : Math.min(start + 1 / 12, END_HOUR);
+    // No calendar chosen — quietly create a default so the event has a home.
     let calId = calendarId;
     if (!calId) {
       calId = uid();
@@ -159,35 +176,23 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
         visible: true,
       });
     }
-
     const linkedTask = kind === "block" && taskId ? taskId : undefined;
-    const next: CalEvent = {
-      id: event.id,
-      title: title.trim() || "Untitled",
-      calendarId: calId,
-      date,
-      start: snap5(start),
-      end: snap5(safeEnd),
-      kind,
-      // A manual work block tied to a task is pinned so Plan Week keeps it.
-      locked: kind === "block" ? locked || !!linkedTask : undefined,
-      taskId: linkedTask,
+    return {
+      calId,
+      fields: {
+        title: title.trim() || "Untitled",
+        calendarId: calId,
+        start: snap5(start),
+        end: snap5(safeEnd),
+        kind,
+        // A manual work block tied to a task is pinned so Plan Week keeps it.
+        locked: kind === "block" ? locked || !!linkedTask : undefined,
+        taskId: linkedTask,
+      } as Omit<CalEvent, "id" | "date" | "seriesId">,
     };
-    if (isNew) {
-      if (repeat && repeatDays.some(Boolean)) {
-        // Materialize one event per occurrence date (same time/calendar).
-        addEvents(
-          occurrenceDates().map((d) => ({ ...next, id: uid(), date: d })),
-        );
-      } else {
-        addEvent(next);
-      }
-    } else {
-      updateEvent(event.id, next);
-    }
+  }
 
-    // Commit any Cadence-planned work sessions as tasks due on/before this
-    // event, then let the scheduler place blocks for them.
+  function commitPending(calId: string) {
     for (const t of pending) {
       addTask({
         id: uid(),
@@ -199,6 +204,84 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
       });
     }
     if (pending.length > 0) planWeek();
+  }
+
+  /** scope: "this" one occurrence, or "all" occurrences in the series. */
+  function persist(scope: "this" | "all") {
+    const { calId, fields } = buildEvent();
+
+    if (scope === "all") {
+      // Rebuild the whole series from the (possibly edited) recurrence, anchored
+      // at the series' start, keeping its seriesId.
+      const sid = event.seriesId ?? uid();
+      deleteEvents(seriesMembers.map((m) => m.id));
+      if (repeating) {
+        addEvents(
+          occurrenceDates(seriesStart).map((d) => ({
+            id: uid(),
+            date: d,
+            seriesId: sid,
+            ...fields,
+          })),
+        );
+      } else {
+        // Recurrence turned off → collapse the series to a single event.
+        addEvent({ id: uid(), date: seriesStart, ...fields });
+      }
+    } else {
+      // Just this occurrence (leaves the rest of the series untouched).
+      updateEvent(event.id, { date, ...fields });
+    }
+    commitPending(calId);
+    onClose();
+  }
+
+  function save() {
+    const { calId, fields } = buildEvent();
+
+    if (isNew) {
+      if (repeating) {
+        const sid = uid();
+        addEvents(
+          occurrenceDates(date).map((d) => ({
+            id: uid(),
+            date: d,
+            seriesId: sid,
+            ...fields,
+          })),
+        );
+      } else {
+        addEvent({ id: event.id, date, ...fields });
+      }
+      commitPending(calId);
+      onClose();
+      return;
+    }
+
+    // Editing an existing event.
+    if (isSeries) {
+      setEditScope("ask"); // choose this-vs-all
+      return;
+    }
+    // A single (non-series) event the user just turned into a repeating one.
+    if (repeating) {
+      const sid = uid();
+      deleteEvent(event.id);
+      addEvents(
+        occurrenceDates(date).map((d) => ({
+          id: uid(),
+          date: d,
+          seriesId: sid,
+          ...fields,
+        })),
+      );
+      commitPending(calId);
+      onClose();
+      return;
+    }
+    // Plain single edit.
+    updateEvent(event.id, { date, ...fields });
+    commitPending(calId);
     onClose();
   }
 
@@ -366,7 +449,7 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
         </>
       )}
 
-      {isNew && (
+      {(isNew || isSeries) && (
         <div className={f.field}>
           <label className={f.checkbox}>
             <input
@@ -576,6 +659,20 @@ export default function EventEditor({ event, isNew, onClose }: Props) {
           </button>
           <button className={`${f.btn} ${f.btnDanger}`} onClick={deleteAllMatching}>
             All {dupCount}
+          </button>
+        </div>
+      ) : editScope === "ask" ? (
+        <div className={f.actions}>
+          <span className={f.confirmText}>This event repeats. Apply changes to:</span>
+          <span className={f.spacer} />
+          <button className={f.btn} onClick={() => setEditScope(null)}>
+            Cancel
+          </button>
+          <button className={f.btn} onClick={() => persist("this")}>
+            This event
+          </button>
+          <button className={`${f.btn} ${f.btnPrimary}`} onClick={() => persist("all")}>
+            All events
           </button>
         </div>
       ) : (
