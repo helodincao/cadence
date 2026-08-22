@@ -226,3 +226,19 @@
   border-color: var(--cyan);
   box-shadow: var(--glow-cyan-soft);
 }
+
+/* Flash when a calendar due-bar points here. */
+.flash {
+  animation: taskFlash 1.4s ease-out;
+}
+@keyframes taskFlash {
+  0%,
+  30% {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 1px var(--cyan), var(--glow-cyan);
+  }
+  100% {
+    border-color: var(--line-soft);
+    box-shadow: none;
+  }
+}

@@ -25,6 +25,8 @@ interface Props {
   days: Date[];
   onCreateEvent: (dateISO: string, start: number, end: number) => void;
   onEditEvent: (event: CalEvent) => void;
+  /** A due-date bar was clicked — highlight the task in the inbox. */
+  onTaskDueClick: (taskId: string) => void;
 }
 
 const bodyHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
@@ -96,8 +98,13 @@ function computeLanes(evs: CalEvent[]): Map<string, Lane> {
   return res;
 }
 
-export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
-  const { calendars, events, updateEvent } = useApp();
+export default function WeekGrid({
+  days,
+  onCreateEvent,
+  onEditEvent,
+  onTaskDueClick,
+}: Props) {
+  const { calendars, events, tasks, updateEvent } = useApp();
   const today = new Date();
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -246,6 +253,10 @@ export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
         {days.map((date, i) => {
           const w = weekdayIndex(date);
           const isToday = isSameDay(date, today);
+          const iso = toISO(date);
+          const dueTasks = tasks.filter(
+            (t) => !t.done && t.dueDate === iso && visibleIds.has(t.calendarId),
+          );
           return (
             <div
               key={i}
@@ -255,6 +266,24 @@ export default function WeekGrid({ days, onCreateEvent, onEditEvent }: Props) {
               <div className={`${styles.dnum} ${isToday ? styles.today : ""}`}>
                 {date.getDate()}
               </div>
+              {dueTasks.length > 0 && (
+                <div className={styles.dueBars}>
+                  {dueTasks.map((t) => (
+                    <button
+                      key={t.id}
+                      className={styles.dueBar}
+                      style={
+                        { "--ev-color": colorOf(t.calendarId) } as React.CSSProperties
+                      }
+                      title={`Due: ${t.title}`}
+                      onClick={() => onTaskDueClick(t.id)}
+                    >
+                      <span className={styles.dueDot} aria-hidden="true" />
+                      {t.title}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

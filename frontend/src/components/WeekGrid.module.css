@@ -79,6 +79,44 @@
   box-shadow: var(--glow-cyan);
 }
 
+/* Due-date bars: tasks shown under the date they're due. */
+.dueBars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
+  padding: 0 3px;
+}
+.dueBar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ev-color) 16%, transparent);
+  border-left: 3px solid var(--ev-color);
+  border-radius: 3px;
+  padding: 3px 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dueBar:hover {
+  background: color-mix(in srgb, var(--ev-color) 28%, transparent);
+}
+.dueDot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ev-color);
+  box-shadow: 0 0 5px var(--ev-color);
+}
+
 /* --- Scroll area + body grid --- */
 .scroll {
   flex: 1;

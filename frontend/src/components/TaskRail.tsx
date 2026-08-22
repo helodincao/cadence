@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { Task } from "../types";
 import { useApp } from "../store/AppStore";
 import { formatShortDate } from "../lib/time";
@@ -7,6 +8,8 @@ interface Props {
   /** Show only tasks relevant to this date range (the current view period). */
   rangeStart: string; // ISO YYYY-MM-DD
   rangeEnd: string;
+  /** When set, scroll to and flash this task (from a calendar due-bar click). */
+  highlight?: { id: string; nonce: number } | null;
   onNewTask: () => void;
   onEditTask: (task: Task) => void;
 }
@@ -17,10 +20,26 @@ const PRIORITY_LABEL = { high: "HIGH", med: "MED", low: "LOW" } as const;
 export default function TaskRail({
   rangeStart,
   rangeEnd,
+  highlight,
   onNewTask,
   onEditTask,
 }: Props) {
   const { tasks, events, calendars, updateTask, planTask } = useApp();
+  const railRef = useRef<HTMLElement>(null);
+  const [flashId, setFlashId] = useState<string | null>(null);
+
+  // On a due-bar click, scroll the matching card into view and flash it.
+  useEffect(() => {
+    if (!highlight) return;
+    const el = railRef.current?.querySelector<HTMLElement>(
+      `[data-task-id="${highlight.id}"]`,
+    );
+    if (!el) return;
+    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    setFlashId(highlight.id);
+    const t = setTimeout(() => setFlashId(null), 1400);
+    return () => clearTimeout(t);
+  }, [highlight?.id, highlight?.nonce]);
 
   const colorOf = (id: string) =>
     calendars.find((c) => c.id === id)?.color ?? "var(--ink-3)";
@@ -51,7 +70,7 @@ export default function TaskRail({
   const openCount = applicable.filter((t) => !t.done).length;
 
   return (
-    <aside className={styles.rail}>
+    <aside className={styles.rail} ref={railRef}>
       <div className={styles.head}>
         <span className={`${styles.title} hud-label`}>Task Inbox</span>
         <span className={styles.count}>{openCount}</span>
@@ -77,7 +96,10 @@ export default function TaskRail({
           return (
             <button
               key={task.id}
-              className={`${styles.task} ${task.done ? styles.done : ""}`}
+              data-task-id={task.id}
+              className={`${styles.task} ${task.done ? styles.done : ""} ${
+                flashId === task.id ? styles.flash : ""
+              }`}
               onClick={() => onEditTask(task)}
             >
               <div className={styles.taskTop}>

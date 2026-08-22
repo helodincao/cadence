@@ -34,6 +34,12 @@ function CalendarApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Set when a due-date bar on the calendar is clicked; the task rail scrolls to
+  // and flashes that task. The nonce lets the same task re-flash on repeat clicks.
+  const [taskHighlight, setTaskHighlight] = useState<{
+    id: string;
+    nonce: number;
+  } | null>(null);
 
   const weekStart = useMemo(() => startOfWeek(anchor), [anchor]);
   const gridDays = useMemo(
@@ -116,11 +122,13 @@ function CalendarApp() {
             days={gridDays}
             onCreateEvent={newEvent}
             onEditEvent={(event) => setEventEdit({ event, isNew: false })}
+            onTaskDueClick={(id) => setTaskHighlight({ id, nonce: Date.now() })}
           />
         )}
         <TaskRail
           rangeStart={taskRange.start}
           rangeEnd={taskRange.end}
+          highlight={taskHighlight}
           onNewTask={() => setTaskEdit({ task: null })}
           onEditTask={(task) => setTaskEdit({ task })}
         />
