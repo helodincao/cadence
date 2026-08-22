@@ -121,10 +121,12 @@ export async function importDetails(
   prompt: string,
   files: File[],
   deadline?: string,
+  calendars?: string[],
 ): Promise<ImportResult> {
   const fd = new FormData();
   fd.append("prompt", prompt);
   if (deadline) fd.append("deadline", deadline);
+  for (const name of calendars ?? []) fd.append("calendars", name);
   for (const f of files) fd.append("files", f);
 
   let res: Response;

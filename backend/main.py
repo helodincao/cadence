@@ -158,6 +158,7 @@ def me(user: User = Depends(current_user)):
 async def import_details(
     prompt: str = Form(""),
     deadline: str = Form(""),
+    calendars: List[str] = Form(default=[]),
     files: List[UploadFile] = File(default=[]),
     user: User = Depends(current_user),
 ):
@@ -168,7 +169,7 @@ async def import_details(
     """
     uploaded = [((f.filename or "file"), await f.read(), (f.content_type or "")) for f in files]
     try:
-        result, source = import_plan(prompt, uploaded, deadline or None)
+        result, source = import_plan(prompt, uploaded, deadline or None, calendars)
     except Exception as e:  # provider outage, rate limit, bad key, etc.
         raise HTTPException(
             status_code=502,

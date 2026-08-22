@@ -170,7 +170,10 @@ def _events_to_api(events: List[ImEvent]) -> List[dict]:
 # Shared instruction text (provider-agnostic)
 # ---------------------------------------------------------------------------
 def _build_instruction(
-    prompt: str, text_snippets: List[str], deadline: Optional[str]
+    prompt: str,
+    text_snippets: List[str],
+    deadline: Optional[str],
+    calendars: Optional[List[str]] = None,
 ) -> str:
     today = datetime.date.today().isoformat()
     instruction = prompt.strip() or "Plan the attached work."
@@ -180,6 +183,23 @@ def _build_instruction(
         f"\n\nToday's date is {today}. Resolve any relative or year-less dates "
         "to the correct upcoming ISO date."
     )
+    existing = [c.strip() for c in (calendars or []) if c and c.strip()]
+    if existing:
+        instruction += (
+            "\n\nThe user already has these calendars: "
+            + ", ".join(f'"{c}"' for c in existing)
+            + ". For each item's `group`, reuse the name of the existing calendar "
+            "it belongs to whenever it plausibly fits one (match by meaning, not "
+            "just exact spelling — e.g. coursework fits a 'School' or 'Classes' "
+            "calendar). Only invent a NEW group name when the item fits none of "
+            "the existing calendars. Copy an existing calendar's name EXACTLY when "
+            "reusing it."
+        )
+    else:
+        instruction += (
+            "\n\nThe user has no calendars yet, so choose sensible new `group` "
+            "names for the categories you find."
+        )
     if deadline:
         instruction += (
             f"\n\nAll of this work leads up to a deadline on {deadline}. Break it "
@@ -196,7 +216,10 @@ def _build_instruction(
 # Anthropic path
 # ---------------------------------------------------------------------------
 def _import_with_ai(
-    prompt: str, files: List[UploadedFile], deadline: Optional[str] = None
+    prompt: str,
+    files: List[UploadedFile],
+    deadline: Optional[str] = None,
+    calendars: Optional[List[str]] = None,
 ) -> Optional[ImportResult]:
     import anthropic  # imported lazily so the heuristic path needs no SDK
 
@@ -220,7 +243,10 @@ def _import_with_ai(
         else:
             text_snippets.append(f"----- FILE: {name} -----\n{data.decode('utf-8', errors='ignore')}")
 
-    content.append({"type": "text", "text": _build_instruction(prompt, text_snippets, deadline)})
+    content.append({
+        "type": "text",
+        "text": _build_instruction(prompt, text_snippets, deadline, calendars),
+    })
 
     client = anthropic.Anthropic()
     response = client.messages.parse(
@@ -237,7 +263,10 @@ def _import_with_ai(
 # Gemini path (Google's free tier; multimodal)
 # ---------------------------------------------------------------------------
 def _import_with_gemini(
-    prompt: str, files: List[UploadedFile], deadline: Optional[str] = None
+    prompt: str,
+    files: List[UploadedFile],
+    deadline: Optional[str] = None,
+    calendars: Optional[List[str]] = None,
 ) -> Optional[ImportResult]:
     from google import genai  # imported lazily so other paths need no SDK
     from google.genai import errors, types
@@ -250,7 +279,9 @@ def _import_with_gemini(
         else:
             text_snippets.append(f"----- FILE: {name} -----\n{data.decode('utf-8', errors='ignore')}")
 
-    parts.append(types.Part.from_text(text=_build_instruction(prompt, text_snippets, deadline)))
+    parts.append(types.Part.from_text(
+        text=_build_instruction(prompt, text_snippets, deadline, calendars)
+    ))
 
     client = genai.Client(api_key=_gemini_key())
     config = types.GenerateContentConfig(
@@ -333,12 +364,18 @@ def _heuristic(text: str, deadline: Optional[str] = None) -> List[ImTask]:
     return tasks
 
 
-def import_plan(prompt: str, files: List[UploadedFile], deadline: Optional[str] = None):
+def import_plan(
+    prompt: str,
+    files: List[UploadedFile],
+    deadline: Optional[str] = None,
+    calendars: Optional[List[str]] = None,
+):
     """Return (result_dict, source) where source is 'ai' or 'heuristic'.
 
     When ``deadline`` (ISO YYYY-MM-DD) is given, the plan is framed as work
     leading up to that date — used by the "plan work sessions for this event"
-    flow in the event editor.
+    flow in the event editor. ``calendars`` are the user's existing calendar
+    names, so the AI can reuse them for grouping instead of always proposing new.
     """
     provider = active_provider()
 
@@ -354,9 +391,9 @@ def import_plan(prompt: str, files: List[UploadedFile], deadline: Optional[str] 
         return {"note": note, "tasks": _tasks_to_api(_heuristic(text, deadline)), "events": []}, "heuristic"
 
     result = (
-        _import_with_gemini(prompt, files, deadline)
+        _import_with_gemini(prompt, files, deadline, calendars)
         if provider == "gemini"
-        else _import_with_ai(prompt, files, deadline)
+        else _import_with_ai(prompt, files, deadline, calendars)
     )
     if not result:
         return {"note": "Nothing to schedule was found.", "tasks": [], "events": []}, "ai"
