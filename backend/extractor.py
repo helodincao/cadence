@@ -107,6 +107,14 @@ sets/homework -> "Assignments"; readings -> "Readings"; a big project's pieces -
 its project name. Infer sensible, general categories from the content — this is
 NOT limited to school (it could be "Meetings", "Shifts", "Deadlines", etc.).
 
+DEADLINES ARE TASKS, NOT EVENTS. Anything that is "due" on a date — an
+assignment, problem set, project, paper, report, or any deliverable with a
+deadline but no fixed meeting time — must be a TASK with that date as its
+due_date, so the user can allot work time toward it. Make an EVENT only when
+there is a real time to be present: a lecture, an exam sitting, an in-class
+quiz, a presentation slot, office hours, or a meeting. When unsure whether
+something is a deadline or an event, prefer a task.
+
 Also return note: one short sentence summarizing what you planned.
 
 Follow the user's instruction:

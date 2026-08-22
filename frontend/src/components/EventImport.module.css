@@ -365,3 +365,27 @@
   font-family: var(--font-mono);
   font-size: 12px;
 }
+
+/* Per-row Task/Event reclassify toggle in the review. */
+.kindToggle {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.kindToggle button {
+  padding: 5px 8px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.kindToggle button:hover {
+  color: var(--ink);
+}
+.kindToggle .kindOn {
+  background: var(--accent-soft);
+  color: var(--cyan-bright);
+}
